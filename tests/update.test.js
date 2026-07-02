@@ -31,6 +31,57 @@ describe('update command', () => {
     }
   });
 
+  it('should migrate legacy CLAUDE.md projects instead of claiming not initialized', () => {
+    const origCwd = process.cwd();
+    process.chdir(tmpDir);
+
+    // Legacy install: CLAUDE.md master file, no AGENTS.md
+    fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), '# Old master file\n');
+
+    const logs = [];
+    const origLog = console.log;
+    console.log = (msg) => logs.push(msg);
+
+    try {
+      const updateCommand = require('../lib/commands/update');
+      updateCommand({ skipNpm: true });
+
+      const output = logs.join(' ');
+      expect(output).not.toContain('Not initialized');
+      expect(fs.existsSync(path.join(tmpDir, 'AGENTS.md'))).toBe(true);
+    } finally {
+      console.log = origLog;
+      process.chdir(origCwd);
+    }
+  });
+
+  it('should update projects that only have .aiautomations/', () => {
+    const origCwd = process.cwd();
+    process.chdir(tmpDir);
+
+    fs.mkdirSync(path.join(tmpDir, '.aiautomations'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.aiautomations', 'config.json'), JSON.stringify({
+      tool: 'gemini',
+      version: '1.0.0',
+    }));
+
+    const logs = [];
+    const origLog = console.log;
+    console.log = (msg) => logs.push(msg);
+
+    try {
+      const updateCommand = require('../lib/commands/update');
+      updateCommand({ skipNpm: true });
+
+      const output = logs.join(' ');
+      expect(output).not.toContain('Not initialized');
+      expect(fs.existsSync(path.join(tmpDir, 'AGENTS.md'))).toBe(true);
+    } finally {
+      console.log = origLog;
+      process.chdir(origCwd);
+    }
+  });
+
   it('should update AGENTS.md from template', () => {
     const origCwd = process.cwd();
     process.chdir(tmpDir);
