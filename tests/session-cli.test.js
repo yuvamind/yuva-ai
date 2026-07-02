@@ -14,7 +14,7 @@ function run(args, cwd) {
 }
 
 function readSessionJSON(dir) {
-  return JSON.parse(fs.readFileSync(path.join(dir, '.session', 'session.json'), 'utf8'));
+  return JSON.parse(fs.readFileSync(path.join(dir, '.yuva', 'session', 'session.json'), 'utf8'));
 }
 
 describe('session CLI', () => {
@@ -118,8 +118,8 @@ describe('session CLI', () => {
   it('session clear removes session files', () => {
     const dir = makeTempDir();
     run('session start "Build login page"', dir);
-    expect(fs.existsSync(path.join(dir, '.session'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, '.yuva', 'session'))).toBe(true);
     run('session clear', dir);
-    expect(fs.existsSync(path.join(dir, '.session'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, '.yuva', 'session'))).toBe(false);
   });
 });

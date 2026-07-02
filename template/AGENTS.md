@@ -81,11 +81,18 @@ Solo mode is allowed ONLY for trivial single-file changes, quick questions, or w
 
 ---
 
+## PROTECTED FILES — NEVER delete, move, or empty
+
+`.yuva/` (task bus + sessions), `.session/`, `.aiautomations/`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.claude/`, `.cursor/`, and any other AI config files. These belong to the orchestration system. Never run `yuva swarm clear` or `yuva session clear` unless the user explicitly asks. "Cleanup" NEVER includes these files.
+
+---
+
 ## Rules
 
 1. **Always run orchestrate first** — understand the project before acting
 2. **Swarm by default** — multi-step work goes through the swarm flow above
 3. **If existing code exists** — run existingcode agent before anything else
 4. **One agent at a time** — complete each agent's instructions before the next
-5. **Update session** — after any meaningful work, run `yuva agent show statemanager` to update `.session/` files
+5. **Update session** — after any meaningful work, use `yuva session log` / `yuva session save`
 6. **Run `yuva gate`** before declaring any work complete
+7. **NEVER touch the protected files** listed above
