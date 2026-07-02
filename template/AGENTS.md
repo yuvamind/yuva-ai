@@ -11,6 +11,24 @@ You have access to a multi-agent development system. Use the CLI commands below 
 3. **Get agent instructions**: Run `yuva agent show <name>` to load the full prompt for any agent
 4. **Follow the agent**: Execute the agent's instructions completely before moving to the next one
 
+This applies even to greetings: when the user's FIRST message is just "hey" / "hi" / "what's up", run `yuva agent orchestrate` and reply with a short status — what this project is, whether there's an active session to resume, and 2-3 suggested next actions as a numbered list to pick from.
+
+---
+
+## How to ask the user questions
+
+NEVER ask open-ended questions when options are possible. Every question MUST offer 2-4 concrete options with ONE marked "(Recommended)" plus a one-line reason, so the user can answer with just a number:
+
+```
+1. Which database?
+   A) PostgreSQL (Recommended — relational data, free, scales well)
+   B) MongoDB (better if your data is document-shaped)
+   C) SQLite (simplest, fine for single-user apps)
+```
+
+Always end with: "Reply with your choices (e.g. 1A 2B) — or say 'go with your recommendations' and I'll proceed with all recommended options."
+If the user says "go with your recommendations", proceed immediately with all recommended options — do not re-ask.
+
 ---
 
 ## Agent Selection Guide

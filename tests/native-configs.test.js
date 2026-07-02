@@ -90,6 +90,23 @@ describe('native-configs', () => {
       expect(settings.permissions.allow).toContain('Bash(yuva *)');
     });
 
+    it('should create a SessionStart hook that runs orchestrate', () => {
+      const { generateClaudeConfig } = require('../lib/native-configs');
+      generateClaudeConfig(tmpDir);
+      const settings = JSON.parse(fs.readFileSync(path.join(tmpDir, '.claude', 'settings.json'), 'utf8'));
+      const hookCommand = settings.hooks.SessionStart[0].hooks[0];
+      expect(hookCommand.type).toBe('command');
+      expect(hookCommand.command).toContain('yuva agent orchestrate');
+    });
+
+    it('base template should require options with recommendations when asking questions', () => {
+      const { getBaseTemplate } = require('../lib/native-configs');
+      const template = getBaseTemplate('Any Tool');
+      expect(template).toContain('(Recommended)');
+      expect(template).toContain('go with');
+      expect(template).toContain('greetings');
+    });
+
     it('should return list of created files', () => {
       const { generateClaudeConfig } = require('../lib/native-configs');
       const files = generateClaudeConfig(tmpDir);

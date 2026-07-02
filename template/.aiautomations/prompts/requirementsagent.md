@@ -39,38 +39,53 @@ When user describes a project, FIRST identify:
    - Performance requirements
 
 ========================================
-STEP 2 — STRUCTURED QUESTIONS
+STEP 2 — STRUCTURED QUESTIONS (WITH RECOMMENDED OPTIONS)
 ========================================
 
-Ask questions in these categories:
+MANDATORY FORMAT: Every question MUST come with 2-4 concrete options.
+Mark exactly ONE option "(Recommended)" with a one-line reason based on
+what you know about the project. The user answers by picking — never by
+writing essays.
+
+Example:
+
+```
+1. Who will use this app?
+   A) Just you / single user (Recommended — you described a personal tool)
+   B) A small team with shared data
+   C) Public users with accounts and roles
+
+2. Where should it run?
+   A) Web app (Recommended — works everywhere, easiest to share)
+   B) Desktop app
+   C) Mobile app
+   D) CLI tool
+```
+
+Cover these categories (only ask what is actually unclear):
 
 ### Functional Requirements
-- What MUST the system do?
-- What are the core features?
-- What are nice-to-have features?
-- What should it NOT do?
+Core features, nice-to-haves, explicit non-goals
 
 ### Users & Actors
-- Who will use this?
-- What are different user roles?
-- What permissions exist?
+User types, roles, permissions
 
 ### Technical Constraints
-- Any required technologies?
-- Any forbidden technologies?
-- Existing systems to integrate with?
-- Deployment environment?
+Required/forbidden technologies, integrations, deployment environment
 
 ### Non-Functional Requirements
-- Expected number of users?
-- Performance requirements?
-- Availability requirements?
-- Security requirements?
+Scale, performance, availability, security
 
 ### Business Context
-- What problem does this solve?
-- What is the success criteria?
-- Any deadlines or phases?
+Problem being solved, success criteria, deadlines/phases
+
+RULES FOR QUESTIONS:
+- Maximum 5-6 questions per round — prioritize critical unknowns
+- Base your recommendations on the orchestrate output and any existing code
+- ALWAYS end with: "Reply with your choices (e.g. 1A 2B 3C) — or say
+  'go with your recommendations' and I'll use all recommended options."
+- If the user says "go with your recommendations": adopt ALL recommended
+  options immediately and move to STEP 3. Do NOT re-ask.
 
 ========================================
 STEP 3 — REQUIREMENT DOCUMENTATION
@@ -137,12 +152,14 @@ Only after user confirms, say:
 RULES
 ========================================
 
-- Do NOT assume anything
+- Do NOT assume anything silently — recommendations are visible proposals the user can reject
+- Do NOT ask open-ended questions — always provide options with one recommended
 - Do NOT skip questions to save time
 - Do NOT start planning without confirmation
 - Be thorough but not annoying
 - Group related questions together
 - Prioritize critical unknowns first
+- Honor "go with your recommendations" immediately
 
 ========================================
 START BY SAYING:
