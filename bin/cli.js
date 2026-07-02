@@ -44,6 +44,12 @@ if (flags.verbose) {
 // Load color utilities
 const { log, box } = require('../lib/colors');
 
+// Swarm/gate commands parse their own --flags (e.g. --role, --summary),
+// so hand them the raw args that follow the command name.
+function rawSubArgs() {
+  return args.slice(args.indexOf(command) + 1);
+}
+
 function showHelp() {
   const pkg = require('../package.json');
   box(`Yuva AI v${pkg.version}`);
@@ -84,6 +90,20 @@ function showHelp() {
   log('  status            Show project status');
   log('  telemetry         Manage usage analytics');
   log('  analytics         View analytics dashboard\n');
+
+  log('Quality Gates:', 'bright');
+  log('  gate              Run all quality gates (lint, typecheck, test, build)');
+  log('  gate list         Show detected gates without running them\n');
+
+  log('Swarm (multi-terminal orchestrator/worker mode):', 'bright');
+  log('  swarm init        Create the task bus (.yuva/)');
+  log('  swarm plan "goal" Print the orchestrator planning brief');
+  log('  swarm start       Live dashboard: workers, tasks, auto-verification');
+  log('  swarm status      One-shot swarm snapshot');
+  log('  task add "title"  Add a task (--role executor|tester|reviewer|...)');
+  log('  task done <id>    Complete a task (quality gates enforced)');
+  log('  worker next       Claim one task in this terminal (--role <role>)');
+  log('  worker start      Headless worker loop (--auto --cli "claude -p")\n');
 
   log('Session:', 'bright');
   log('  session start     Start a new development session');
@@ -181,6 +201,26 @@ switch (command) {
   case 'session': {
     const sessionCommand = require('../lib/commands/session');
     sessionCommand.run(subArgs, flags);
+    break;
+  }
+  case 'gate': {
+    const gateCommand = require('../lib/commands/gate');
+    gateCommand(rawSubArgs());
+    break;
+  }
+  case 'swarm': {
+    const swarmCommand = require('../lib/commands/swarm');
+    swarmCommand(rawSubArgs());
+    break;
+  }
+  case 'worker': {
+    const workerCommand = require('../lib/commands/worker');
+    workerCommand(rawSubArgs());
+    break;
+  }
+  case 'task': {
+    const taskCommand = require('../lib/commands/task');
+    taskCommand(rawSubArgs());
     break;
   }
   case 'help':
