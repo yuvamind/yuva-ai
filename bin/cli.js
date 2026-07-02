@@ -95,14 +95,17 @@ function showHelp() {
   log('  gate              Run all quality gates (lint, typecheck, test, build)');
   log('  gate list         Show detected gates without running them\n');
 
-  log('Swarm (multi-terminal orchestrator/worker mode):', 'bright');
+  log('Swarm (multi-terminal orchestrator/worker mode — DEFAULT for big tasks):', 'bright');
   log('  swarm init        Create the task bus (.yuva/)');
   log('  swarm plan "goal" Print the orchestrator planning brief');
+  log('  swarm spawn       AUTO-OPEN worker terminals in this project dir');
+  log('                    (--roles executor,tester --cli claude --headless)');
   log('  swarm start       Live dashboard: workers, tasks, auto-verification');
   log('  swarm status      One-shot swarm snapshot');
   log('  task add "title"  Add a task (--role executor|tester|reviewer|...)');
   log('  task done <id>    Complete a task (quality gates enforced)');
   log('  worker next       Claim one task in this terminal (--role <role>)');
+  log('  worker boot       Boot an AI CLI as a looping worker (--role --cli)');
   log('  worker start      Headless worker loop (--auto --cli "claude -p")\n');
 
   log('Session:', 'bright');

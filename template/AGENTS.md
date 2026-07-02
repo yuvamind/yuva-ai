@@ -63,9 +63,29 @@ yuva agent orchestrate       # Scan project and get context
 
 ---
 
+## Swarm Mode is the DEFAULT (multi-terminal orchestrator/workers)
+
+For ANY multi-step task (a feature, refactor, anything touching more than one file), you MUST use the swarm flow instead of doing everything in this terminal:
+
+1. `yuva swarm init` (if no `.yuva/` exists yet)
+2. `yuva swarm plan "<the user's goal>"` — follow the brief to break it into tasks
+3. `yuva task add "..." --role executor` (+ tester and reviewer tasks with `--deps`)
+4. `yuva swarm spawn` — auto-opens worker terminals in THIS same project directory (`--cli claude` to boot an AI in each, `--headless` for unattended)
+5. `yuva swarm start` — this terminal becomes the orchestrator dashboard
+
+All workers operate on the SAME project directory and the same `.yuva/` bus — never a copy, never another path.
+
+If `.yuva/` already exists when you start: you are likely a WORKER — run `yuva worker next --role <role>` and follow the work package EXACTLY. Finish only via `yuva task done <id>` (quality gates run automatically).
+
+Solo mode is allowed ONLY for trivial single-file changes, quick questions, or when the user explicitly says "solo".
+
+---
+
 ## Rules
 
 1. **Always run orchestrate first** — understand the project before acting
-2. **If existing code exists** — run existingcode agent before anything else
-3. **One agent at a time** — complete each agent's instructions before the next
-4. **Update session** — after any meaningful work, run `yuva agent show statemanager` to update `.session/` files
+2. **Swarm by default** — multi-step work goes through the swarm flow above
+3. **If existing code exists** — run existingcode agent before anything else
+4. **One agent at a time** — complete each agent's instructions before the next
+5. **Update session** — after any meaningful work, run `yuva agent show statemanager` to update `.session/` files
+6. **Run `yuva gate`** before declaring any work complete

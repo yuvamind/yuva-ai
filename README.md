@@ -112,9 +112,11 @@ yuva session end           # End current session
 yuva gate                  # Run lint/typecheck/test/build — exits non-zero on failure
 yuva gate list             # Show detected gates
 
-# Swarm (multi-terminal orchestrator/worker mode)
+# Swarm (multi-terminal orchestrator/worker mode — the default for big tasks)
 yuva swarm init            # Create the task bus (.yuva/)
 yuva swarm plan "goal"     # Print the orchestrator planning brief
+yuva swarm spawn           # AUTO-OPEN worker terminals in this project dir
+                           #   (--roles executor,tester --cli claude --headless)
 yuva swarm start           # Live dashboard + automatic verification
 yuva task add "title" --role executor   # Add work to the bus
 yuva worker next --role executor        # Claim a task in this terminal
@@ -245,6 +247,12 @@ Run a whole AI team in parallel terminals. One **orchestrator** terminal
 coordinates; each **worker** terminal takes one role (executor, tester,
 reviewer, security, debugger). They coordinate through a zero-dependency,
 crash-resumable file bus in `.yuva/`.
+
+**Swarm is the default flow**: the generated AI configs instruct your AI to
+use it for any multi-step task. `yuva swarm spawn` opens the worker terminals
+automatically — every window starts in the **same project directory**, sharing
+one codebase and one task bus (never a copy). Opt out with
+`yuva config set mode solo`.
 
 ```
 Terminal 1 (orchestrator)          Terminal 2..N (workers)
