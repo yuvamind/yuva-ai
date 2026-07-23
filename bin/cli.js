@@ -126,7 +126,26 @@ function showHelp() {
   log('  --dry-run         Preview changes without applying');
   log('  --verbose         Enable detailed logging');
   log('  --version, -v     Show version');
-  log('  --skip-npm        Skip npm update (only regenerate configs)\n');
+  log('  --skip-npm        Skip npm update (only regenerate configs)\\n');
+
+  log('Scan & Security:', 'bright');
+  log('  scan              Run code analysis + security scan');
+  log('  scan code         Code analysis only (modules, routes, complexity)');
+  log('  scan security     Security scan only (deps, secrets, patterns)');
+  log('  gates             Run plugin gates (code quality rules)');
+  log('  gates list        List available plugin gates\\n');
+
+  log('Cost Tracking:', 'bright');
+  log('  cost              Show AI cost summary');
+  log('  cost set-budget   Set budget limit (USD)');
+  log('  cost reset        Reset cost tracking\\n');
+
+  log('Neural Graph (code knowledge brain — reduces token costs):', 'bright');
+  log('  graph build         Build/update the knowledge graph from codebase');
+  log('  graph stats         Show graph statistics');
+  log('  graph query <text>  Search for relevant nodes');
+  log('  graph context <task> Show context a task would receive');
+  log('  graph clear         Clear the graph\\n');
 
   log('Examples:', 'bright');
   log('  npx yuva init');
@@ -235,6 +254,26 @@ switch (command) {
   case 'loop': {
     const loopCommand = require('../lib/commands/loop');
     loopCommand(rawSubArgs());
+    break;
+  }
+  case 'scan': {
+    const scanCommand = require('../lib/commands/scan');
+    scanCommand(subArgs);
+    break;
+  }
+  case 'cost': {
+    const costCommand = require('../lib/commands/cost');
+    costCommand(subArgs);
+    break;
+  }
+  case 'gates': {
+    const gatesCommand = require('../lib/commands/gates');
+    gatesCommand(subArgs);
+    break;
+  }
+  case 'graph': {
+    const graphCommand = require('../lib/commands/graph');
+    graphCommand(subArgs);
     break;
   }
   case 'help':
