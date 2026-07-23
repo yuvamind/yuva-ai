@@ -16,6 +16,19 @@ describe('TaskBus', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
+  describe('stop signal', () => {
+    it('requestStop/stopRequested/clearStop round-trip', () => {
+      expect(bus.stopRequested()).toBe(false);
+      bus.requestStop('loop complete');
+      expect(bus.stopRequested()).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'stop'))).toBe(true);
+      const events = fs.readFileSync(path.join(tmpDir, '.yuva', 'events.log'), 'utf8');
+      expect(events).toContain('swarm.stop');
+      bus.clearStop();
+      expect(bus.stopRequested()).toBe(false);
+    });
+  });
+
   describe('init()', () => {
     it('creates the bus directories', () => {
       bus.init();

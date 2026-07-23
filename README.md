@@ -20,6 +20,7 @@ A **development agent framework** that turns your AI coding tool into a multi-ag
 - **Hybrid Orchestrator** — CLI scans your project, AI picks the right agents
 - **Quality Gates** — `yuva gate` runs real lint/test/build checks; work isn't "done" until they pass
 - **Swarm Mode** — Multi-terminal orchestrator/worker system: parallel AI workers, one dashboard, enforced verification
+- **Loop Engine** — Zero-touch autopilot: AI plans → workers build → gates verify → AI reviews & replans until the goal is done
 - **Session Persistence** — Never lose progress across conversations
 - **Zero Dependencies** — Pure Node.js, installs in seconds
 
@@ -111,6 +112,12 @@ yuva session end           # End current session
 # Quality Gates (enforced, not advisory)
 yuva gate                  # Run lint/typecheck/test/build — exits non-zero on failure
 yuva gate list             # Show detected gates
+
+# Loop Engine (autopilot — zero-touch plan→build→verify→replan)
+yuva loop run "goal"       # Fully autonomous: AI plans, workers build, gates
+                           #   verify, AI reviews & replans until the goal is done
+yuva loop status           # Show loop state and task counts
+yuva loop stop             # Signal the loop and all workers to stop
 
 # Swarm (multi-terminal orchestrator/worker mode — the default for big tasks)
 yuva swarm init            # Create the task bus (.yuva/)
@@ -277,6 +284,64 @@ Workers can also run fully headless with any LLM CLI:
 ```bash
 yuva worker start --role tester --auto --cli "claude -p"
 ```
+
+## Loop Engine — Zero-Touch Autopilot
+
+The loop engine drives the whole swarm with **one command and no human in the
+loop**. You give it a goal; it keeps cycling until the goal is verifiably done:
+
+```bash
+yuva loop run "add user authentication with tests"
+```
+
+```
+        ┌─────────────────────────────────────────────┐
+        │                                             │
+        ▼                                             │
+  0. PREFLIGHT verifies the AI CLI answers headlessly │
+  1. PLAN      AI CLI breaks the goal into tasks      │
+  2. EXECUTE   headless worker terminals claim them   │
+  3. VERIFY    quality gates run on every completion  │
+  4. ESCALATE  repeat failures → debugger tasks       │
+  5. REVIEW    AI inspects the repo: goal achieved?   │
+        │                                             │
+        └──── not yet → new follow-up tasks ──────────┘
+                     │
+                     ▼ achieved
+  6. REPORT    .yuva/report.md + workers shut down
+```
+
+**Human touchpoints removed:** no manual task breakdown (the AI planner emits
+the task list), no manual worker startup (`swarm spawn --headless` runs
+automatically), no manual re-planning (the AI reviewer proposes follow-up
+tasks), and no manual shutdown (a `.yuva/stop` signal ends every worker).
+
+**Safety rails, because autonomy needs brakes:**
+- `--max-iterations <n>` (default 5) caps plan→review cycles — the loop hands
+  back to you instead of spinning forever.
+- `--max-attempts <n>` (default 3) caps retries per task before it is
+  escalated to a high-priority debugger task.
+- Quality gates stay mandatory — the AI cannot mark its own work done.
+- `yuva loop stop` halts everything; state survives in `.yuva/loop.json`
+  and the final summary lands in `.yuva/report.md`.
+- Ctrl+C only detaches the orchestrator — workers keep going until stopped.
+
+**Self-healing AI connection** — the loop never bets on a CLI that can't
+answer:
+- **Preflight** pings the AI CLI with a tiny JSON prompt before planning and
+  diagnoses failures precisely: not installed, not logged in, timed out, or
+  no headless support — each with the exact fix.
+- **Automatic fallback** — with no `--cli` forced, the loop tries your
+  configured tool first, then every other installed CLI (claude → gemini →
+  codex → opencode → aider) until one passes. An explicit `--cli` is never
+  silently switched.
+- **Output self-repair** — unparseable AI replies are re-asked once with a
+  strict JSON-only reminder before giving up.
+- `yuva loop doctor` tests every installed CLI headlessly and reports which
+  one the loop would use.
+
+Works with any headless AI CLI (`--cli claude`, `--cli gemini`, ...); defaults
+to your configured tool.
 
 ## Custom Agents
 

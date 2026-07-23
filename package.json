@@ -1,6 +1,6 @@
 {
   "name": "yuva-ai",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Yuva AI - Development agent framework with 12 agents, 20 LLM platforms, on-demand prompts, and auto-detection",
   "main": "index.js",
   "bin": {

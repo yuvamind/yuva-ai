@@ -95,6 +95,12 @@ function showHelp() {
   log('  gate              Run all quality gates (lint, typecheck, test, build)');
   log('  gate list         Show detected gates without running them\n');
 
+  log('Loop Engine (autopilot — zero-touch plan→build→verify→replan):', 'bright');
+  log('  loop run "goal"   Fully autonomous: AI plans tasks, workers build,');
+  log('                    gates verify, AI reviews & replans until done');
+  log('  loop status       Show loop state and task counts');
+  log('  loop stop         Signal the loop and all workers to stop\n');
+
   log('Swarm (multi-terminal orchestrator/worker mode — DEFAULT for big tasks):', 'bright');
   log('  swarm init        Create the task bus (.yuva/)');
   log('  swarm plan "goal" Print the orchestrator planning brief');
@@ -224,6 +230,11 @@ switch (command) {
   case 'task': {
     const taskCommand = require('../lib/commands/task');
     taskCommand(rawSubArgs());
+    break;
+  }
+  case 'loop': {
+    const loopCommand = require('../lib/commands/loop');
+    loopCommand(rawSubArgs());
     break;
   }
   case 'help':
