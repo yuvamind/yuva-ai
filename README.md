@@ -1,28 +1,31 @@
 # Yuva AI
 
-**[yuvaog.com](https://yuvaog.com/)** | A lightweight development agent framework with **12 specialized agents**, **20 LLM platforms**, on-demand prompts, and auto-detection.
+**[yuvaog.com](https://yuvaog.com/)** | A neural-graph development agent framework with **enforcement**, **multi-agent swarm**, **12 specialized agents**, **20 LLM platforms**, and **auto-detection**.
 
 [![npm version](https://img.shields.io/npm/v/yuva-ai.svg)](https://www.npmjs.com/package/yuva-ai)
 [![npm downloads](https://img.shields.io/npm/dt/yuva-ai.svg)](https://www.npmjs.com/package/yuva-ai)
 [![npm downloads/month](https://img.shields.io/npm/dm/yuva-ai.svg)](https://www.npmjs.com/package/yuva-ai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-vitest-green.svg)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/tests-300_passing-green.svg)](https://vitest.dev/)
 
 ## What is this?
 
-A **development agent framework** that turns your AI coding tool into a multi-agent system:
+A **development agent framework** that turns your AI coding tool into an enforced, graph-aware multi-agent system:
 
+- **Neural Graph** — code knowledge brain that maps file relationships, reduces token costs 60-80%
+- **Prompt Enforcement** — machine-verified rules, not just markdown suggestions
 - **12 Specialized Dev Agents** — Requirements, Planning, Execution, Testing, Security, Debugging, and more
-- **On-Demand Prompts** — Agent prompts served from the package, not copied to your project
-- **Auto-Detection** — Detects your AI tool (Claude, OpenCode, Cursor, Codex, etc.) and configures automatically
-- **19 LLM Platforms** — Works with Claude, GPT, Gemini, Ollama, OpenCode, Cursor, and more
-- **Lightweight Init** — Creates only 3 files instead of 67
-- **Hybrid Orchestrator** — CLI scans your project, AI picks the right agents
+- **Smart Verification** — identifies which task broke the build (not just "blame the last one")
+- **Git Branch Isolation** — each worker gets its own branch; failures roll back automatically
+- **File Conflict Detection** — prevents two workers from editing the same file
+- **Security Scanning** — npm audit, hardcoded secrets, dangerous patterns
+- **Plugin Gates** — custom code quality rules beyond lint/test/build
+- **Cost Tracking** — tracks AI token usage with budget limits
 - **Quality Gates** — `yuva gate` runs real lint/test/build checks; work isn't "done" until they pass
-- **Swarm Mode** — Multi-terminal orchestrator/worker system: parallel AI workers, one dashboard, enforced verification
-- **Loop Engine** — Zero-touch autopilot: AI plans → workers build → gates verify → AI reviews & replans until the goal is done
-- **Session Persistence** — Never lose progress across conversations
-- **Zero Dependencies** — Pure Node.js, installs in seconds
+- **Swarm Mode** — multi-terminal orchestrator/worker system with enforced verification
+- **Loop Engine** — zero-touch autopilot: AI plans → workers build → gates verify → AI reviews
+- **Session Persistence** — never lose progress across conversations
+- **Zero Dependencies** — pure Node.js, installs in seconds
 
 ## Quick Start
 
@@ -30,7 +33,7 @@ A **development agent framework** that turns your AI coding tool into a multi-ag
 # Install globally
 npm install -g yuva-ai
 
-# Initialize in your project (auto-detects your AI tool)
+# Initialize in your project (auto-detects your AI tool + builds neural graph)
 yuva init
 
 # Or specify your tool
@@ -52,55 +55,94 @@ That's it. Open your project in your AI tool — it reads `AGENTS.md` and knows 
                     ┌─────────┴─────────┐
                     ▼                   ▼
          ┌──────────────────┐  ┌──────────────────┐
-         │ yuva agent       │  │ yuva agent       │
-         │ orchestrate      │  │ show <name>      │
-         │                  │  │                  │
-         │ Scans project:   │  │ Returns full     │
-         │ - existing code? │  │ agent prompt     │
-         │ - language?      │  │ from package     │
-         │ - framework?     │  │ on demand        │
-         │ - git status?    │  │                  │
+         │ yuva agent       │  │ Neural Graph      │
+         │ orchestrate      │  │ (auto-built)      │
+         │                  │  │                   │
+         │ Scans project:   │  │ Maps: files,      │
+         │ - existing code? │  │ functions, routes, │
+         │ - language?      │  │ components, deps,  │
+         │ - framework?     │  │ concepts, decisions│
+         │ - git status?    │  │                   │
          └──────────────────┘  └──────────────────┘
                     │                   │
                     ▼                   ▼
          ┌──────────────────────────────────────────┐
-         │          DEVELOPMENT AGENTS (12)          │
+         │          ENFORCED WORK PACKAGES           │
          ├──────────────────────────────────────────┤
-         │ Existing Code │ Requirements │ Planner   │
-         │ Execution     │ Tester       │ Reviewer  │
-         │ Security      │ Debugger     │ Refactor  │
-         │ Continuity    │ Risk         │ State Mgr │
+         │ Dynamic context + graph subgraph +       │
+         │ agent prompt + checklists + standards +  │
+         │ enforcement rules + quality gates        │
          └──────────────────────────────────────────┘
+                              │
+                    ┌─────────┴─────────┐
+                    ▼                   ▼
+         ┌──────────────────┐  ┌──────────────────┐
+         │ Prompt Enforcer  │  │ Quality Gates     │
+         │                  │  │                   │
+         │ Pre-flight:      │  │ Project: lint,    │
+         │ - understands?   │  │ test, build       │
+         │ - scope valid?   │  │                   │
+         │                  │  │ Plugin: no-console,│
+         │ Post-task:       │  │ no-todo, no-unused│
+         │ - protected files│  │ deps, env-sync    │
+         │ - scope creep?   │  │                   │
+         └──────────────────┘  └──────────────────┘
 ```
 
 ## CLI Commands
 
 ```bash
 # Setup
-yuva init                  # Auto-detect AI tool and initialize
+yuva init                  # Auto-detect AI tool and initialize (+ builds graph)
 yuva init opencode         # Initialize for specific tool
 yuva init cursor --force   # Reinitialize for different tool
-yuva doctor                # Diagnose setup issues
+yuva doctor                # Diagnose setup (checks graph, gates, bus, config)
+yuva status                # Project status (graph, costs, gates, session)
 
 # Agent Commands
 yuva agent show <name>     # Get full agent prompt (on demand)
 yuva agent list            # List all available agents
 yuva agent orchestrate     # Scan project context (JSON output)
 
-# List & Custom Agents
-yuva list                  # List all installed agents
-yuva add create <name>     # Create a custom agent
-yuva add remove <name>     # Remove an agent
+# Neural Graph (code knowledge brain)
+yuva graph build           # Build/update the graph from codebase
+yuva graph build --force   # Full rebuild (ignore cached graph)
+yuva graph stats           # Show graph statistics
+yuva graph query <text>    # Search for relevant nodes
+yuva graph context <task>  # Preview what context a task would get
+yuva graph clear           # Clear the graph
 
-# Multi-LLM
-yuva llm list              # List supported LLMs
-yuva llm use <name>        # Switch LLM platform
-yuva llm detect            # Detect current LLM
-yuva llm generate          # Generate configs for all LLMs
+# Scan & Security
+yuva scan                  # Run code analysis + security scan
+yuva scan code             # Code analysis only (modules, routes, complexity)
+yuva scan security         # Security scan only (deps, secrets, patterns)
 
-# Configuration
-yuva config                # Show current config
-yuva config set <k> <v>    # Set a config value
+# Quality Gates (enforced, not advisory)
+yuva gate                  # Run all gates (project + plugin)
+yuva gate list             # Show detected gates
+yuva gates                 # Run plugin gates (code quality rules)
+yuva gates list            # List available plugin gates
+
+# Cost Tracking
+yuva cost                  # Show AI cost summary
+yuva cost set-budget 50    # Set budget limit ($50 USD)
+yuva cost reset            # Reset cost tracking
+
+# Loop Engine (autopilot — zero-touch plan→build→verify→replan)
+yuva loop run "goal"       # Fully autonomous: AI plans, workers build, gates
+                           #   verify, AI reviews & replans until the goal is done
+yuva loop status           # Show loop state and task counts
+yuva loop stop             # Signal the loop and all workers to stop
+yuva loop doctor           # Test which AI CLIs work headlessly
+
+# Swarm (multi-terminal orchestrator/worker mode — the default for big tasks)
+yuva swarm init            # Create the task bus (.yuva/)
+yuva swarm plan "goal"     # Print the orchestrator planning brief
+yuva swarm spawn           # AUTO-OPEN worker terminals in this project dir
+yuva swarm start           # Live dashboard + automatic verification
+yuva task add "title" --role executor   # Add work to the bus
+yuva worker next --role executor        # Claim a task in this terminal
+yuva task done <id> --summary "..."     # Finish (enforcement + gates run)
 
 # Session Persistence (auto-saves)
 yuva session start "goal"  # Start tracking a session
@@ -109,30 +151,156 @@ yuva session resume        # Get full context (for AI or you)
 yuva session status        # Show session state
 yuva session end           # End current session
 
-# Quality Gates (enforced, not advisory)
-yuva gate                  # Run lint/typecheck/test/build — exits non-zero on failure
-yuva gate list             # Show detected gates
-
-# Loop Engine (autopilot — zero-touch plan→build→verify→replan)
-yuva loop run "goal"       # Fully autonomous: AI plans, workers build, gates
-                           #   verify, AI reviews & replans until the goal is done
-yuva loop status           # Show loop state and task counts
-yuva loop stop             # Signal the loop and all workers to stop
-
-# Swarm (multi-terminal orchestrator/worker mode — the default for big tasks)
-yuva swarm init            # Create the task bus (.yuva/)
-yuva swarm plan "goal"     # Print the orchestrator planning brief
-yuva swarm spawn           # AUTO-OPEN worker terminals in this project dir
-                           #   (--roles executor,tester --cli claude --headless)
-yuva swarm start           # Live dashboard + automatic verification
-yuva task add "title" --role executor   # Add work to the bus
-yuva worker next --role executor        # Claim a task in this terminal
-yuva task done <id> --summary "..."     # Finish (gates run automatically)
+# Configuration
+yuva config                # Show current config
+yuva config set <k> <v>    # Set a config value
+yuva llm list              # List supported LLMs
+yuva llm use <name>        # Switch LLM platform
 
 # Analytics
-yuva status                # Show project status
+yuva telemetry             # Manage usage analytics
+yuva analytics             # View analytics dashboard
 yuva help                  # Show full help
 ```
+
+## Neural Graph — Code Knowledge Brain
+
+The neural graph maps your codebase like a brain maps neurons. Each **node** is an entity (file, function, class, concept, decision), each **edge** is a relationship (imports, calls, depends-on, tests, implements).
+
+### How it reduces token costs
+
+```
+BEFORE (no graph):
+  Task "fix login bug" → full codebase context → ~5,000-15,000 tokens
+
+AFTER (with graph):
+  Task "fix login bug" → graph traverses:
+    "login" → auth.js → validatePassword() → db.js → User model
+  → only ~500-2,000 tokens of relevant context → 60-80% cheaper
+```
+
+### How it learns
+
+When a task completes, the graph:
+- Creates a session node for the task
+- Connects it to all modified files
+- Strengthens edges between files changed together
+- Extracts concepts from the task description
+- Records decisions made during the task
+
+Over time: "auth.js and db.js are always changed together" becomes a strong connection. "Login concept connects to auth.js, db.js, User model" becomes knowledge the next task benefits from.
+
+### Commands
+
+```bash
+yuva graph build           # Scan codebase and build the graph
+yuva graph stats           # Show: 47 nodes, 83 edges, 12 node types
+yuva graph query "auth"    # Find: auth.js, login(), AuthService, authentication concept
+yuva graph context "fix login"  # Preview: 12 nodes, ~340 tokens (vs ~5000 full dump)
+```
+
+## Prompt Enforcement — Not Just Markdown
+
+Agent prompts are no longer just suggestions. The **Prompt Enforcer** validates AI output at three points:
+
+### Pre-flight Check (before AI starts)
+- Sends a comprehension verification prompt
+- AI must output a JSON plan: files it will touch, gates it will run
+- If AI plans to modify protected files → task rejected immediately
+- If AI can't answer → task rejected before any tokens are spent
+
+### Post-task Validation (when `yuva task done` runs)
+- Checks git diff for protected file violations (.yuva/, .session/, AGENTS.md, lock files)
+- If ANY protected file was modified → task REJECTED
+- Checks scope creep: 3+ unplanned files → task flagged
+- Runs BEFORE quality gates — violations block completion entirely
+
+### Protected Files (never modifiable by AI workers)
+```
+.yuva/          — orchestration state
+.session/       — session files
+.aiautomations/ — agent configs
+AGENTS.md       — AI orchestrator config
+CLAUDE.md       — Claude config
+.claude/        — Claude directory
+.cursor/        — Cursor directory
+package-lock.json, yarn.lock, pnpm-lock.yaml
+```
+
+## Smart Verification
+
+When quality gates fail, Yuva no longer blames the most recent task. Instead:
+
+1. Runs all gates (project + plugin)
+2. If ALL pass → verify all done tasks
+3. If gates fail → matches error output against each task's changed files
+4. Identifies the **actual culprit** (the task that touched the failing files)
+5. Rejects ONLY the culprit; verifies the rest
+
+## Git Branch Isolation
+
+Each headless worker gets its own git branch:
+- Branch name: `yuva/worker-w1/task-abc123`
+- AI works on the branch
+- On success: merge back to main
+- On failure: discard branch (automatic rollback)
+- Merge conflicts: reported with details, manual resolution
+
+```
+yuva worker start --role executor --auto --cli "claude -p"
+  ✓ Git branch isolation: ENABLED (each task gets its own branch)
+```
+
+If the working tree is dirty or not a git repo, Yuva warns you:
+```
+⚠ Git isolation UNAVAILABLE: Working tree is dirty (3 uncommitted change(s))
+  → Commit or stash changes first (`git stash`), or use --no-isolate to skip
+```
+
+## Plugin Gates — Custom Code Quality Rules
+
+Beyond lint/test/build, Yuva runs **plugin gates** — code quality rules that catch what linters miss:
+
+| Rule | What it catches |
+|------|----------------|
+| `no-console-log` | console.log in production source files |
+| `no-todo-fixme` | TODO/FIXME/HACK comments |
+| `require-jsdoc-exports` | Exported functions missing JSDoc |
+| `no-unused-deps` | Dependencies not imported anywhere |
+| `env-example-sync` | Env vars used in code but not in .env.example |
+
+Custom rules: create `.aiautomations/gates/<name>.js`:
+```js
+module.exports = {
+  name: 'No hardcoded URLs',
+  severity: 'warning',
+  run(targetDir) {
+    // Return array of findings
+    return [{ file: 'src/api.js', line: 15, message: 'Hardcoded URL found' }];
+  }
+};
+```
+
+## Security Scanning
+
+```bash
+yuva scan security
+```
+
+Runs:
+- **Dependency audit** — npm audit / pip-audit for known vulnerabilities
+- **Secret detection** — API keys, Stripe keys, GitHub tokens, AWS keys, private keys
+- **Dangerous patterns** — eval(), innerHTML, CORS wildcards, disabled SSL
+- **Config issues** — .env not gitignored, debug mode in production
+
+## Cost Tracking
+
+```bash
+yuva cost                  # Show: 47 calls, $3.42 estimated
+yuva cost set-budget 50    # Block AI calls after $50 spent
+```
+
+Tracks every AI CLI call: tokens used, estimated cost, duration, success/failure. The loop engine checks budget before every AI call.
 
 ## Available Agents
 
@@ -150,6 +318,8 @@ yuva help                  # Show full help
 | **Debugger** | `yuva agent show debugger` | Bug investigation and fixing |
 | **Refactor** | `yuva agent show refactor` | Code improvement and cleanup |
 | **State Manager** | `yuva agent show statemanager` | Update session files |
+
+All agents now receive **dynamic context** via `{{CONTEXT}}` injection — they see your actual project structure, not generic instructions.
 
 ## Multi-LLM Support
 
@@ -200,52 +370,19 @@ your-project/
 ├── AGENTS.md                       # Orchestrator (source of truth)
 ├── .aiautomations/
 │   ├── config.json                 # Tool config + package path
-│   └── agents.md                   # Agent index
+│   ├── agents.md                   # Agent index
+│   └── gates/                      # Custom plugin gates (optional)
+│       └── my-rule.js
+├── .yuva/
+│   ├── graph/
+│   │   ├── graph.json              # Neural graph (auto-built on init)
+│   │   └── index.json              # Inverted index for fast search
+│   ├── session/                    # Session persistence
+│   ├── tasks/                      # Task bus (swarm mode)
+│   ├── workers/                    # Worker registrations
+│   ├── costs.json                  # Cost tracking
+│   └── loop.json                   # Loop engine state
 └── .cursor/rules/yuva.mdc         # (only if Cursor detected)
-```
-
-Agent prompts are served on demand from the installed package — **no file bloat**.
-
-## Session Persistence
-
-Never lose context between terminal sessions. Sessions **auto-save** after every yuva command — no manual save needed.
-
-```bash
-# Day 1 — Start working
-yuva session start "Build user auth with JWT"
-# ... work normally, run any yuva commands ...
-# Session auto-saves git state, changed files, and context after each command
-
-# Day 2 — Come back, new terminal
-yuva session resume        # Full context: goal, decisions, files changed, activity log
-# AI picks up exactly where you left off
-
-# Log important progress
-yuva session log "Added login endpoint" --type code
-yuva session decision "Use bcrypt" "Industry standard for password hashing"
-
-# When done
-yuva session end
-```
-
-Session files are stored in `.session/` (auto-gitignored) and include:
-- `session.json` — structured state for tools
-- `context.md` — human/AI-readable context summary
-- `log.md` — timestamped activity log
-- `state.md` — current status overview
-
-## Quality Gates — Enforcement, Not Suggestions
-
-Checklists and standards only work if something *enforces* them. `yuva gate`
-runs your project's **real** lint / typecheck / test / build commands and exits
-non-zero when anything fails — so an AI can never claim work is "done" while
-the build is broken.
-
-Gates are auto-detected from `package.json` scripts (also Cargo, Go, and
-Python projects), and can be overridden in `.aiautomations/config.json`:
-
-```json
-{ "gates": { "test": "npm run test:ci", "build": false, "e2e": "npm run e2e" } }
 ```
 
 ## Swarm Mode — Multi-Terminal Orchestrator/Workers
@@ -255,40 +392,27 @@ coordinates; each **worker** terminal takes one role (executor, tester,
 reviewer, security, debugger). They coordinate through a zero-dependency,
 crash-resumable file bus in `.yuva/`.
 
-**Swarm is the default flow**: the generated AI configs instruct your AI to
-use it for any multi-step task. `yuva swarm spawn` opens the worker terminals
-automatically — every window starts in the **same project directory**, sharing
-one codebase and one task bus (never a copy). Opt out with
-`yuva config set mode solo`.
-
 ```
 Terminal 1 (orchestrator)          Terminal 2..N (workers)
 ─────────────────────────          ───────────────────────
 yuva swarm init                    yuva worker next --role executor
 yuva swarm plan "build API"        # → prints the full work package:
 yuva task add "..." --role ...     #   agent prompt + checklists +
-yuva swarm start                   #   standards + gate protocol
-# live dashboard: watches all      # do the work, then:
-# workers, verifies every result   yuva task done <id> --summary "..."
-# with quality gates               # gates MUST pass or it's rejected
+yuva swarm spawn                   #   standards + enforcement + graph
+# live dashboard: watches all      #   context + gate protocol
+# workers, verifies every result   # do the work, then:
+# with quality gates               yuva task done <id> --summary "..."
+                                   # enforcement + gates MUST pass
 ```
 
-**How enforcement works:**
-1. Every claimed task ships as a **work package** — the role's agent prompt, required checklists, and code standards are delivered *with* the task. Workers can't skip them.
-2. `yuva task done` runs all quality gates first. Gates fail → task stays claimed until fixed.
-3. The orchestrator (`yuva swarm start`) re-verifies every completed task and bounces failures back to the queue **with the gate output as feedback** for the next attempt.
-4. Tasks support dependencies (`--deps id1,id2`) — a review task can't start before its build task is verified.
-
-Workers can also run fully headless with any LLM CLI:
-
-```bash
-yuva worker start --role tester --auto --cli "claude -p"
-```
+**Enforcement flow:**
+1. Worker claims task → file conflict check → pre-flight comprehension check
+2. Work package includes: dynamic context + graph subgraph + enforcement rules
+3. Worker does work on isolated git branch
+4. `yuva task done` → enforcement check → quality gates → graph learning
+5. Orchestrator verifies → smart culprit attribution
 
 ## Loop Engine — Zero-Touch Autopilot
-
-The loop engine drives the whole swarm with **one command and no human in the
-loop**. You give it a goal; it keeps cycling until the goal is verifiably done:
 
 ```bash
 yuva loop run "add user authentication with tests"
@@ -299,11 +423,12 @@ yuva loop run "add user authentication with tests"
         │                                             │
         ▼                                             │
   0. PREFLIGHT verifies the AI CLI answers headlessly │
-  1. PLAN      AI CLI breaks the goal into tasks      │
-  2. EXECUTE   headless worker terminals claim them   │
-  3. VERIFY    quality gates run on every completion  │
-  4. ESCALATE  repeat failures → debugger tasks       │
-  5. REVIEW    AI inspects the repo: goal achieved?   │
+  0.5 GRAPH     auto-builds neural graph for context  │
+  1. PLAN       AI CLI breaks the goal into tasks      │
+  2. EXECUTE    headless worker terminals claim them   │
+  3. VERIFY     quality gates run on every completion  │
+  4. ESCALATE   repeat failures → debugger tasks       │
+  5. REVIEW     AI inspects the repo: goal achieved?   │
         │                                             │
         └──── not yet → new follow-up tasks ──────────┘
                      │
@@ -311,55 +436,57 @@ yuva loop run "add user authentication with tests"
   6. REPORT    .yuva/report.md + workers shut down
 ```
 
-**Human touchpoints removed:** no manual task breakdown (the AI planner emits
-the task list), no manual worker startup (`swarm spawn --headless` runs
-automatically), no manual re-planning (the AI reviewer proposes follow-up
-tasks), and no manual shutdown (a `.yuva/stop` signal ends every worker).
-
-**Safety rails, because autonomy needs brakes:**
-- `--max-iterations <n>` (default 5) caps plan→review cycles — the loop hands
-  back to you instead of spinning forever.
-- `--max-attempts <n>` (default 3) caps retries per task before it is
-  escalated to a high-priority debugger task.
-- Quality gates stay mandatory — the AI cannot mark its own work done.
+**Safety rails:**
+- `--max-iterations <n>` (default 5) caps plan→review cycles
+- `--max-attempts <n>` (default 3) caps retries per task
+- `--budget <usd>` caps total AI cost (stops when exceeded)
+- Quality gates stay mandatory — the AI cannot mark its own work done
 - `yuva loop stop` halts everything; state survives in `.yuva/loop.json`
-  and the final summary lands in `.yuva/report.md`.
-- Ctrl+C only detaches the orchestrator — workers keep going until stopped.
 
-**Self-healing AI connection** — the loop never bets on a CLI that can't
-answer:
-- **Preflight** pings the AI CLI with a tiny JSON prompt before planning and
-  diagnoses failures precisely: not installed, not logged in, timed out, or
-  no headless support — each with the exact fix.
-- **Automatic fallback** — with no `--cli` forced, the loop tries your
-  configured tool first, then every other installed CLI (claude → gemini →
-  codex → opencode → aider) until one passes. An explicit `--cli` is never
-  silently switched.
-- **Output self-repair** — unparseable AI replies are re-asked once with a
-  strict JSON-only reminder before giving up.
-- `yuva loop doctor` tests every installed CLI headlessly and reports which
-  one the loop would use.
+## Session Persistence
 
-Works with any headless AI CLI (`--cli claude`, `--cli gemini`, ...); defaults
-to your configured tool.
-
-## Custom Agents
+Never lose context between terminal sessions. Sessions **auto-save** after every yuva command.
 
 ```bash
-# Create a custom agent
-yuva add create my-agent
-
-# This creates a local override in:
-# .aiautomations/prompts/my-agentagent.md
-
-# Local agents always take priority over package agents
+yuva session start "Build user auth with JWT"
+# ... work normally, run any yuva commands ...
+yuva session resume        # Full context: goal, decisions, files changed
+yuva session log "Added login endpoint" --type code
+yuva session decision "Use bcrypt" "Industry standard"
+yuva session end
 ```
+
+## FAQ
+
+### How does the neural graph reduce costs?
+
+Instead of dumping the entire codebase into every AI prompt (~5,000-15,000 tokens), the graph traverses only the relevant subgraph (~500-2,000 tokens). For a task about "login", it finds: auth.js → validatePassword() → db.js → User model. Everything else is excluded.
+
+### Can I mix different AI systems in one swarm?
+
+Yes. Orchestrator in Claude Code, executor in Claude, tester in Codex, reviewer in Gemini. The task bus stores only worker IDs and roles. Work packages are plain markdown every model can read.
+
+### What happens if a worker modifies a protected file?
+
+The task is automatically REJECTED when `yuva task done` runs. The Prompt Enforcer checks git diff for violations against .yuva/, .session/, .aiautomations/, AGENTS.md, lock files, and other protected paths. The AI cannot bypass this — it's enforced at the system level, not the prompt level.
+
+### How does the graph learn?
+
+When a task completes, the graph creates a session node, connects it to changed files, strengthens edges between files changed together, extracts concepts, and records decisions. Over time, the graph builds up knowledge about which files relate to which concepts.
+
+### What are plugin gates?
+
+Beyond lint/test/build, plugin gates are code quality rules that catch what linters miss: console.log in production, TODO comments, unused dependencies, missing .env.example entries. Custom rules can be added in `.aiautomations/gates/`.
+
+### Does swarm mode need an internet connection?
+
+Yuva itself needs neither. The bus is local files, gates are local commands, the graph is local JSON. Your AI tools use whatever they normally use. A swarm of Ollama workers works completely offline.
 
 ## Development
 
 ```bash
 npm install
-npm test
+npm test                 # 300 tests passing
 npm run test:coverage
 npm run lint
 npm run doctor
@@ -371,72 +498,6 @@ npm run doctor
 **Open Source:** Ollama, LM Studio, Jan.ai, Continue.dev, Open Interpreter, LLM CLI, Tabby
 **Terminal:** OpenCode, Codex CLI, Kilo Code, Aider
 **Models:** Llama 3, Mistral, CodeLlama, DeepSeek, Qwen, Phi-3, GPT-4, Claude, Gemini
-
-## FAQ
-
-### How does the swarm connect to AI tools like Claude Code, agy, or Codex?
-
-Through the shell — **text in, text out**. There is no API, no SDK, no server,
-no socket. Any AI that can run shell commands can join:
-
-1. The AI runs `yuva worker next --role <role>` in its terminal.
-2. Yuva prints the **work package** (agent prompt + checklists + standards +
-   task + gate rules) to stdout — that text lands directly in the AI's context.
-3. The AI does the work with its own tools, then runs
-   `yuva task done <id> --summary "..."` — gates run automatically.
-
-For headless mode, yuva drives the AI instead: it pipes each work package into
-any CLI via stdin (`yuva worker start --auto --cli "claude -p"`).
-
-### Can I mix different AI systems in one swarm?
-
-Yes — that's the point. Orchestrator in Claude Code, executor in Claude,
-tester in agy, reviewer in Codex, all at once. The task bus stores only worker
-IDs and roles, never vendors. Work packages are plain markdown every model can
-read, and quality gates judge every result by the same standard regardless of
-which AI produced it.
-
-Mixed swarms are actually *stronger*: Codex reviewing code Claude wrote (or
-vice versa) catches blind spots that same-model review misses. Run
-`yuva init --all` once so every tool gets its native config file.
-
-### Do the AIs talk to each other directly?
-
-No. They collaborate through the `.yuva/` file bus and through the code itself:
-
-- Verifying a task unlocks the tasks that `--deps` on it — whichever free
-  worker matches the role picks it up next.
-- When a result is rejected, the gate failure text is attached to the task, so
-  the next AI that claims it (even a different vendor) sees
-  **"Feedback from previous attempt (MUST address)"** in its work package.
-
-### Why quality gates? Aren't the checklists and standards enough?
-
-No — markdown is advisory, and LLMs drift. Checklists only work if something
-*enforces* them. `yuva gate` runs your project's **real** lint/typecheck/test/
-build commands and exits non-zero on failure, and `yuva task done` refuses to
-complete a task while gates fail. Enforcement lives in the CLI's exit codes,
-not in the model's discipline.
-
-### What happens if a worker terminal crashes mid-task?
-
-Nothing is lost. The bus is crash-resumable: headless workers that stop
-heartbeating have their claimed tasks automatically released back to the queue
-for another worker to pick up. Interactive workers are never auto-released
-(long thinking time is normal) — the orchestrator dashboard just shows how
-long the task has been claimed.
-
-### Does swarm mode need an internet connection or API keys?
-
-Yuva itself needs neither — the bus is local files, gates are local shell
-commands, and yuva has zero dependencies. Your AI tools use whatever they
-normally use (Claude Code needs its login, Ollama runs fully offline). A swarm
-of Ollama workers works completely offline.
-
-### Do I have to use swarm mode?
-
-No. Single-terminal mode (agents + sessions + `yuva gate`) works exactly as
-before. Swarm mode activates only when you create a bus with `yuva swarm init`.
 
 ## Contributing
 

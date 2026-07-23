@@ -1,7 +1,7 @@
 {
   "name": "yuva-ai",
-  "version": "1.6.0",
-  "description": "Yuva AI - Development agent framework with 12 agents, 20 LLM platforms, on-demand prompts, and auto-detection",
+  "version": "2.0.0",
+  "description": "Yuva AI - Neural-graph development agent framework with enforcement, multi-agent swarm, 20 LLM platforms, and auto-detection",
   "main": "index.js",
   "bin": {
     "yuva-ai": "bin/cli.js",
@@ -26,7 +26,10 @@
     "framework",
     "development",
     "code-quality",
-    "on-demand-prompts",
+    "neural-graph",
+    "knowledge-graph",
+    "enforcement",
+    "prompt-engineering",
     "auto-detection",
     "antigravity",
     "ollama",
@@ -44,7 +47,11 @@
     "open-source",
     "workflow",
     "plugin-system",
-    "analytics"
+    "analytics",
+    "security-scanning",
+    "cost-tracking",
+    "git-isolation",
+    "quality-gates"
   ],
   "author": "aftabshaikh4643",
   "license": "MIT",
