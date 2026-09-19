@@ -125,20 +125,12 @@ jobs:
 
       - name: Publish to npm
         if: ${{ !inputs.dry_run }}
-        # npm uses OIDC when the runner can mint an id-token AND a trusted
-        # publisher is configured, and falls back to NODE_AUTH_TOKEN otherwise.
-        # Both are wired so whichever is available wins — check the "Set up job"
-        # log for `IdToken: write` to see which path a given run took.
-        run: |
-          echo "--- npm auth resolution ---"
-          npm config get registry
-          echo "userconfig: ${NPM_CONFIG_USERCONFIG:-<unset>}"
-          # Show whether setup-node left an auth line behind (value redacted).
-          if [ -n "$NPM_CONFIG_USERCONFIG" ] && [ -f "$NPM_CONFIG_USERCONFIG" ]; then
-            grep -c "_authToken" "$NPM_CONFIG_USERCONFIG" | xargs -I{} echo "auth lines in .npmrc: {}"
-          fi
-          echo "--- publishing (verbose shows the OIDC exchange, if attempted) ---"
-          npm publish --access public --loglevel verbose
+        # Publishes via OIDC trusted publishing — no credential is configured
+        # anywhere, deliberately. Any token npm can find (including the
+        # placeholder setup-node exports when given `registry-url`) makes it
+        # authenticate with that instead and skip the OIDC exchange entirely.
+        # Provenance is attached automatically on this path.
+        run: npm publish --access public
 
       - name: Commit, tag and push
         if: ${{ !inputs.dry_run }}
