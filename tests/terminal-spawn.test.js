@@ -44,6 +44,16 @@ describe('terminal-spawn', () => {
       expect(() => openTerminal('echo "hi"')).toThrow(/double quotes/);
     });
 
+    it('names a bad working directory instead of a bare exit code', async () => {
+      // `start /D <bad path>` fails with "The current directory is invalid"
+      // printed inside the new window — where nobody sees it — and the
+      // launcher just returns 1. Catching it here makes the cause readable.
+      const result = await openTerminal('echo hi', { cwd: 'Z:/no/such/directory' });
+      expect(result.ok).toBe(false);
+      expect(result.reason).toMatch(/working directory does not exist/);
+      expect(result.reason).toContain('Z:/no/such/directory');
+    });
+
     it('reports failure instead of claiming success when the launcher is missing', async () => {
       // The old version returned true whenever spawn() did not throw
       // synchronously, so terminals that never opened were reported as opened.

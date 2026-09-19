@@ -178,7 +178,7 @@ describe('StreamingWorker', () => {
   it('keeps capturing stdout when the log file cannot be written', async () => {
     // The log is diagnostic. Losing it must not lose the command's output.
     const script = writeScript(tmpDir, 'echo.js', 'process.stdout.write("hello from the task\\n");');
-    const pending = worker.run('task-nolog', `node ${JSON.stringify(script)}`, { cwd: tmpDir });
+    const pending = worker.run('task-nolog', `node ${script}`, { cwd: tmpDir });
     fs.rmSync(worker.outputDir, { recursive: true, force: true });
 
     const result = await pending;
