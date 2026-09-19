@@ -35,6 +35,9 @@ jobs:
   release:
     needs: verify
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the bump commit and create the release
+      id-token: write # npm Trusted Publishing (OIDC) + provenance
 
     steps:
       - uses: actions/checkout@v4
