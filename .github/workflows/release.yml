@@ -103,6 +103,20 @@ jobs:
           fi
           echo "npm supports OIDC trusted publishing"
 
+      # Definitive OIDC check: the runner only exports these two variables when
+      # id-token:write is actually granted. Their absence means no OIDC token
+      # can be minted, so npm cannot use trusted publishing no matter how the
+      # npm side is configured.
+      - name: Can this runner mint an OIDC token?
+        run: |
+          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
+            echo "OIDC AVAILABLE - id-token:write is granted"
+            echo "request url host: $(echo "$ACTIONS_ID_TOKEN_REQUEST_URL" | sed -E 's#(https://[^/]+).*##')"
+          else
+            echo "OIDC UNAVAILABLE - ACTIONS_ID_TOKEN_REQUEST_URL is not set"
+            echo "id-token:write was requested but not granted to this job"
+          fi
+
       - name: Publish to npm
         if: ${{ !inputs.dry_run }}
         # npm uses OIDC when the runner can mint an id-token AND a trusted
