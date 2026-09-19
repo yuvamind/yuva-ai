@@ -111,7 +111,6 @@ jobs:
         run: |
           if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
             echo "OIDC AVAILABLE - id-token:write is granted"
-            echo "request url host: $(echo "$ACTIONS_ID_TOKEN_REQUEST_URL" | sed -E 's#(https://[^/]+).*##')"
           else
             echo "OIDC UNAVAILABLE - ACTIONS_ID_TOKEN_REQUEST_URL is not set"
             echo "id-token:write was requested but not granted to this job"
