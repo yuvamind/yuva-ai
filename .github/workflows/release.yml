@@ -88,14 +88,27 @@ jobs:
             || { echo "::error::template/.yuva/prompts/ missing from tarball"; exit 1; }
           rm -f ./*.tgz
 
+      - name: Check npm supports trusted publishing
+        run: |
+          NPM_V="$(npm --version)"
+          echo "npm $NPM_V / node $(node --version)"
+          # Trusted publishing (OIDC) needs npm >= 11.5.1. sort -V does the
+          # version comparison without pulling in a helper action.
+          if [ "$(printf '11.5.1\n%s\n' "$NPM_V" | sort -V | head -1)" != "11.5.1" ]; then
+            echo "::error::npm $NPM_V is too old for OIDC trusted publishing (need >= 11.5.1)"
+            exit 1
+          fi
+          echo "npm supports OIDC trusted publishing"
+
       - name: Publish to npm
         if: ${{ !inputs.dry_run }}
+        # NODE_AUTH_TOKEN is deliberately NOT set. setup-node writes an .npmrc
+        # containing `_authToken=${NODE_AUTH_TOKEN}`; when that resolves to a
+        # real token npm authenticates with it and never attempts the OIDC
+        # exchange, so a stale token silently shadows a correctly configured
+        # trusted publisher. With no token present npm falls through to OIDC
+        # and attaches provenance automatically.
         run: npm publish --access public
-        env:
-          # npm prefers OIDC when a trusted publisher is configured for this
-          # package and falls back to this token otherwise, so the workflow
-          # works either way. Provenance is attached automatically under OIDC.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Commit, tag and push
         if: ${{ !inputs.dry_run }}
