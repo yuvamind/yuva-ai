@@ -105,13 +105,13 @@ jobs:
 
       - name: Publish to npm
         if: ${{ !inputs.dry_run }}
-        # NODE_AUTH_TOKEN is deliberately NOT set. setup-node writes an .npmrc
-        # containing `_authToken=${NODE_AUTH_TOKEN}`; when that resolves to a
-        # real token npm authenticates with it and never attempts the OIDC
-        # exchange, so a stale token silently shadows a correctly configured
-        # trusted publisher. With no token present npm falls through to OIDC
-        # and attaches provenance automatically.
+        # npm uses OIDC when the runner can mint an id-token AND a trusted
+        # publisher is configured, and falls back to NODE_AUTH_TOKEN otherwise.
+        # Both are wired so whichever is available wins — check the "Set up job"
+        # log for `IdToken: write` to see which path a given run took.
         run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Commit, tag and push
         if: ${{ !inputs.dry_run }}
