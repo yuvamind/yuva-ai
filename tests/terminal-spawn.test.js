@@ -6,12 +6,21 @@ describe('terminal-spawn', () => {
     const cmd = 'yuva worker boot --role executor --cli claude';
     const opts = { title: 'yuva executor', cwd: 'C:\\proj' };
 
-    it('windows: uses start with title and working directory', () => {
+    it('windows: passes start arguments as argv, not a pre-quoted string', () => {
+      // cmd.exe /s strips only the OUTERMOST quote pair, so a hand-built
+      // `start "title" /D "dir" cmd /k "command"` string arrives mangled.
+      // Passing argv entries keeps every argument intact.
       const spec = buildSpawnSpec('win32', cmd, opts);
-      expect(spec.cmd).toContain('start "yuva executor"');
-      expect(spec.cmd).toContain('/D "C:\\proj"');
-      expect(spec.cmd).toContain(`cmd /k "${cmd}"`);
-      expect(spec.options.shell).toBe(true);
+      expect(spec.cmd).toBe('cmd.exe');
+      expect(spec.args).toEqual(['/c', 'start', 'yuva executor', '/D', 'C:\\proj', 'cmd.exe', '/k', cmd]);
+      expect(spec.options.shell).toBeUndefined();
+      expect(spec.options.detached).toBe(true);
+    });
+
+    it('windows: opens a Windows Terminal tab when wt is available', () => {
+      const spec = buildSpawnSpec('win32', cmd, { ...opts, terminal: 'wt' });
+      expect(spec.cmd).toBe('wt.exe');
+      expect(spec.args).toEqual(['-w', '0', 'new-tab', '--title', 'yuva executor', '-d', 'C:\\proj', 'cmd.exe', '/k', cmd]);
       expect(spec.options.detached).toBe(true);
     });
 
@@ -33,6 +42,17 @@ describe('terminal-spawn', () => {
   describe('openTerminal()', () => {
     it('rejects commands containing double quotes', () => {
       expect(() => openTerminal('echo "hi"')).toThrow(/double quotes/);
+    });
+
+    it('reports failure instead of claiming success when the launcher is missing', async () => {
+      // The old version returned true whenever spawn() did not throw
+      // synchronously, so terminals that never opened were reported as opened.
+      const result = await openTerminal('yuva worker next', {
+        terminal: 'definitely-not-a-real-terminal',
+        cwd: process.cwd(),
+      });
+      expect(result).toHaveProperty('ok');
+      if (!result.ok) expect(typeof result.reason).toBe('string');
     });
   });
 });

@@ -87,9 +87,9 @@ const db = process.env.DATABASE_URL;
     });
 
     it('should respect config to disable gates', () => {
-      fs.mkdirSync(path.join(tmpDir, '.aiautomations'), { recursive: true });
+      fs.mkdirSync(path.join(tmpDir, '.yuva'), { recursive: true });
       fs.writeFileSync(
-        path.join(tmpDir, '.aiautomations', 'config.json'),
+        path.join(tmpDir, '.yuva', 'config.json'),
         JSON.stringify({ pluginGates: { 'no-console-log': false } })
       );
 

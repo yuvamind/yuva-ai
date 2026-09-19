@@ -43,7 +43,7 @@ RULES
 - Swarm mode is DEFAULT for multi-step work
 - Complete each agent before moving to the next
 - Run quality gates before declaring done
-- Never touch .yuva/, .session/, or .aiautomations/ files
+- Never touch .yuva/ or .session/ files
 
 ========================================
 START BY SAYING:

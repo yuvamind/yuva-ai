@@ -205,7 +205,7 @@ describe('native-configs', () => {
       const files = generateOllamaConfig(tmpDir);
       const content = fs.readFileSync(path.join(tmpDir, 'OLLAMA_INSTRUCTIONS.md'), 'utf8');
       expect(content).toContain('Yuva AI - Ollama Configuration');
-      expect(content).toContain('.aiautomations/prompts/');
+      expect(content).toContain('.yuva/prompts/');
       expect(files).toContain('OLLAMA_INSTRUCTIONS.md');
     });
 

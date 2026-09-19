@@ -20,11 +20,11 @@ describe('SessionManager', () => {
     it('should create .session directory and files', () => {
       sm.start({ goal: 'Build feature X' });
 
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'session'))).toBe(true);
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'session', 'session.json'))).toBe(true);
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'session', 'state.md'))).toBe(true);
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'session', 'log.md'))).toBe(true);
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'session', 'context.md'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'session'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'session', 'session.json'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'session', 'state.md'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'session', 'log.md'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'session', 'context.md'))).toBe(true);
     });
 
     it('should store goal and metadata in session.json', () => {
@@ -109,7 +109,7 @@ describe('SessionManager', () => {
       sm.log('Entry one', { type: 'note' });
       sm.log('Entry two', { type: 'code' });
 
-      const logContent = fs.readFileSync(path.join(tmpDir, '.yuva', 'session', 'log.md'), 'utf8');
+      const logContent = fs.readFileSync(path.join(tmpDir, '.yuva', 'run', 'session', 'log.md'), 'utf8');
       expect(logContent).toContain('**note**: Entry one');
       expect(logContent).toContain('**code**: Entry two');
     });
@@ -128,7 +128,7 @@ describe('SessionManager', () => {
       sm.start({ goal: 'Save test' });
       sm.save({ summary: 'Did great work', phase: 'implementation', filesChanged: [] });
 
-      const state = fs.readFileSync(path.join(tmpDir, '.yuva', 'session', 'state.md'), 'utf8');
+      const state = fs.readFileSync(path.join(tmpDir, '.yuva', 'run', 'session', 'state.md'), 'utf8');
       expect(state).toContain('Save test');
       expect(state).toContain('Did great work');
       expect(state).toContain('implementation');
@@ -187,7 +187,7 @@ describe('SessionManager', () => {
       sm.start({ goal: 'Resume test' });
       sm.resume();
 
-      const content = fs.readFileSync(path.join(tmpDir, '.yuva', 'session', 'context.md'), 'utf8');
+      const content = fs.readFileSync(path.join(tmpDir, '.yuva', 'run', 'session', 'context.md'), 'utf8');
       expect(content).toContain('Resume test');
     });
   });
@@ -269,10 +269,10 @@ describe('SessionManager', () => {
   describe('clear()', () => {
     it('should remove .session directory', () => {
       sm.start({ goal: 'Clear test' });
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'session'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'session'))).toBe(true);
 
       sm.clear();
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'session'))).toBe(false);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'session'))).toBe(false);
     });
 
     it('should not throw if no session exists', () => {
@@ -304,8 +304,8 @@ describe('SessionManager', () => {
 
       const after = sm.getSession();
       expect(after.lastSavedAt).toBeTruthy();
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'session', 'state.md'))).toBe(true);
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'session', 'context.md'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'session', 'state.md'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'session', 'context.md'))).toBe(true);
     });
 
     it('should do nothing when no session exists', () => {
@@ -326,7 +326,7 @@ describe('SessionManager', () => {
 });
 
 describe('SessionManager legacy migration', () => {
-  it('moves an old .session/ directory into .yuva/session/', () => {
+  it('moves an old .session/ directory into .yuva/run/session/', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yuva-legacy-'));
     try {
       fs.mkdirSync(path.join(tmpDir, '.session'));
@@ -336,7 +336,7 @@ describe('SessionManager legacy migration', () => {
       }));
 
       const sm = new SessionManager(tmpDir);
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'session', 'session.json'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'session', 'session.json'))).toBe(true);
       expect(fs.existsSync(path.join(tmpDir, '.session'))).toBe(false);
       expect(sm.getSession().goal).toBe('old goal');
     } finally {

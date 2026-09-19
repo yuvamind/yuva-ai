@@ -50,9 +50,9 @@ describe('orchestrate swarm context', () => {
   });
 
   it('respects mode: solo in config', () => {
-    fs.mkdirSync(path.join(tmpDir, '.aiautomations'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.yuva'), { recursive: true });
     fs.writeFileSync(
-      path.join(tmpDir, '.aiautomations', 'config.json'),
+      path.join(tmpDir, '.yuva', 'config.json'),
       JSON.stringify({ tool: 'claude', mode: 'solo' })
     );
 

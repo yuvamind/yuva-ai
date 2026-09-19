@@ -5,7 +5,7 @@ const cwd = path.join('C:', 'project');
 
 describe('checkFileOp()', () => {
   it('blocks writes inside protected directories', () => {
-    expect(checkFileOp('Write', { file_path: '.yuva/loop.json' }, cwd)).toMatch(/protected yuva-ai directory/);
+    expect(checkFileOp('Write', { file_path: '.yuva/run/loop.json' }, cwd)).toMatch(/protected yuva-ai directory/);
     expect(checkFileOp('Edit', { file_path: '.session/state.md' }, cwd)).toMatch(/protected yuva-ai directory/);
     expect(checkFileOp('Write', { file_path: '.claude/settings.json' }, cwd)).toMatch(/protected yuva-ai directory/);
   });
@@ -64,7 +64,7 @@ describe('checkBashCommand()', () => {
   });
 
   it('allows reading or editing files inside protected dirs via non-destructive commands', () => {
-    expect(checkBashCommand('cat .yuva/loop.json')).toBeNull();
+    expect(checkBashCommand('cat .yuva/run/loop.json')).toBeNull();
   });
 
   it('is a no-op for empty or missing commands', () => {

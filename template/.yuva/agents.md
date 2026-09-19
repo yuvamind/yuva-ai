@@ -19,4 +19,4 @@
 
 These agents are read from the installed yuva-ai package. To see the full prompt for any agent, run the command above.
 
-Custom agents can be added locally in `.aiautomations/prompts/` — local files always take priority over package agents.
+Custom agents can be added locally in `.yuva/prompts/` — local files always take priority over package agents.

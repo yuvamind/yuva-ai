@@ -1,6 +1,6 @@
 {
   "name": "yuva-ai",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Yuva AI - Neural-graph development agent framework with enforcement, multi-agent swarm, headless automation for 5 AI CLIs (Claude, Gemini, Codex, OpenCode, Aider), and config generation for 20 LLM platforms",
   "main": "index.js",
   "bin": {

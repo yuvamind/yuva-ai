@@ -3,7 +3,7 @@ const { decide } = hookCommand;
 
 describe('hook decide() — PreToolUse decision logic', () => {
   it('denies Write into a protected directory', () => {
-    const reason = decide({ tool_name: 'Write', tool_input: { file_path: '.yuva/tasks/1.json' }, cwd: 'C:/project' });
+    const reason = decide({ tool_name: 'Write', tool_input: { file_path: '.yuva/run/tasks/1.json' }, cwd: 'C:/project' });
     expect(reason).toMatch(/protected yuva-ai directory/);
   });
 
@@ -18,7 +18,7 @@ describe('hook decide() — PreToolUse decision logic', () => {
   });
 
   it('allows tools it does not police (e.g. Read)', () => {
-    const reason = decide({ tool_name: 'Read', tool_input: { file_path: '.yuva/loop.json' }, cwd: 'C:/project' });
+    const reason = decide({ tool_name: 'Read', tool_input: { file_path: '.yuva/run/loop.json' }, cwd: 'C:/project' });
     expect(reason).toBeNull();
   });
 

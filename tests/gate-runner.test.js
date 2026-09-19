@@ -45,8 +45,8 @@ describe('gate-runner', () => {
       writeJSON(tmpDir, 'package.json', {
         scripts: { lint: 'eslint .', test: 'vitest run' },
       });
-      fs.mkdirSync(path.join(tmpDir, '.aiautomations'), { recursive: true });
-      writeJSON(path.join(tmpDir, '.aiautomations'), 'config.json', {
+      fs.mkdirSync(path.join(tmpDir, '.yuva'), { recursive: true });
+      writeJSON(path.join(tmpDir, '.yuva'), 'config.json', {
         gates: { test: false, lint: 'custom-lint', e2e: 'run-e2e' },
       });
 
@@ -60,8 +60,8 @@ describe('gate-runner', () => {
 
   describe('runGates()', () => {
     it('passes when all gate commands exit 0', () => {
-      fs.mkdirSync(path.join(tmpDir, '.aiautomations'), { recursive: true });
-      writeJSON(path.join(tmpDir, '.aiautomations'), 'config.json', {
+      fs.mkdirSync(path.join(tmpDir, '.yuva'), { recursive: true });
+      writeJSON(path.join(tmpDir, '.yuva'), 'config.json', {
         gates: { lint: 'node -e "process.exit(0)"' },
       });
 
@@ -72,8 +72,8 @@ describe('gate-runner', () => {
     });
 
     it('fails and captures output when a gate exits non-zero', () => {
-      fs.mkdirSync(path.join(tmpDir, '.aiautomations'), { recursive: true });
-      writeJSON(path.join(tmpDir, '.aiautomations'), 'config.json', {
+      fs.mkdirSync(path.join(tmpDir, '.yuva'), { recursive: true });
+      writeJSON(path.join(tmpDir, '.yuva'), 'config.json', {
         gates: { test: 'node -e "console.error(\'boom\'); process.exit(1)"' },
       });
 
@@ -84,8 +84,8 @@ describe('gate-runner', () => {
     });
 
     it('runs only the requested subset', () => {
-      fs.mkdirSync(path.join(tmpDir, '.aiautomations'), { recursive: true });
-      writeJSON(path.join(tmpDir, '.aiautomations'), 'config.json', {
+      fs.mkdirSync(path.join(tmpDir, '.yuva'), { recursive: true });
+      writeJSON(path.join(tmpDir, '.yuva'), 'config.json', {
         gates: {
           lint: 'node -e "process.exit(0)"',
           test: 'node -e "process.exit(1)"',

@@ -179,19 +179,19 @@ describe('LoopEngine', () => {
       const parsed = await engine.ask('give me json');
 
       expect(parsed).toBeNull();
-      const events = fs.readFileSync(path.join(tmpDir, '.yuva', 'events.log'), 'utf8');
+      const events = fs.readFileSync(path.join(tmpDir, '.yuva', 'run', 'events.log'), 'utf8');
       expect(events).toContain('loop.ai_error');
     });
   });
 
   describe('state persistence', () => {
-    it('saves and merges loop state in .yuva/loop.json', () => {
+    it('saves and merges loop state in .yuva/run/loop.json', () => {
       engine.saveState({ goal: 'g', iteration: 1 });
       engine.saveState({ iteration: 2 });
       const state = engine.loadState();
       expect(state.goal).toBe('g');
       expect(state.iteration).toBe(2);
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'loop.json'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'loop.json'))).toBe(true);
     });
   });
 
@@ -233,7 +233,7 @@ describe('LoopEngine', () => {
   });
 
   describe('writeReport()', () => {
-    it('writes .yuva/report.md and marks the loop state terminal', () => {
+    it('writes .yuva/run/report.md and marks the loop state terminal', () => {
       const task = bus.addTask({ title: 'shipped', role: 'executor' });
       bus.updateTask(task.id, { status: 'verified', summary: 'done well' });
 

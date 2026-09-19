@@ -22,7 +22,7 @@ describe('CLI', () => {
       copyDir(templateDir, tmpDir);
 
       expect(fs.existsSync(path.join(tmpDir, 'AGENTS.md'))).toBe(true);
-      expect(fs.existsSync(path.join(tmpDir, '.aiautomations', 'prompts'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'prompts'))).toBe(true);
     });
 
     it('should create all dev agent prompt files', () => {
@@ -31,7 +31,7 @@ describe('CLI', () => {
 
       copyDir(templateDir, tmpDir);
 
-      const promptsDir = path.join(tmpDir, '.aiautomations', 'prompts');
+      const promptsDir = path.join(tmpDir, '.yuva', 'prompts');
       const agents = fs.readdirSync(promptsDir).filter(f => f.endsWith('.md'));
       expect(agents.length).toBeGreaterThanOrEqual(12);
     });
@@ -42,7 +42,7 @@ describe('CLI', () => {
 
       copyDir(templateDir, tmpDir);
 
-      expect(fs.existsSync(path.join(tmpDir, '.aiautomations', 'config.json'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'config.json'))).toBe(true);
     });
 
   });

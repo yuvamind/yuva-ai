@@ -18,7 +18,7 @@ describe('PromptEnforcer', () => {
 
   describe('PROTECTED_PATTERNS', () => {
     it('should protect .yuva/ directory', () => {
-      expect(PROTECTED_PATTERNS.some(p => p.test('.yuva/tasks/abc.json'))).toBe(true);
+      expect(PROTECTED_PATTERNS.some(p => p.test('.yuva/run/tasks/abc.json'))).toBe(true);
     });
 
     it('should protect .session/ directory', () => {
@@ -87,7 +87,7 @@ describe('PromptEnforcer', () => {
     it('should reject if AI plans to modify protected files', () => {
       const result = enforcer.validatePreFlight({
         understood: true,
-        filesYouWillTouch: ['.yuva/tasks.json', 'src/auth.js'],
+        filesYouWillTouch: ['.yuva/run/tasks.json', 'src/auth.js'],
         qualityGatesYouWillRun: ['npm test'],
       }, {});
       expect(result.valid).toBe(false);
@@ -141,7 +141,7 @@ describe('PromptEnforcer', () => {
     it('should format invalid result with violations', () => {
       const md = formatEnforcementResult({
         valid: false,
-        violations: ['Protected file was modified: .yuva/tasks.json'],
+        violations: ['Protected file was modified: .yuva/run/tasks.json'],
         warnings: [],
         summary: { totalChanged: 1, protectedViolations: 1, scopeViolations: 0 },
       });

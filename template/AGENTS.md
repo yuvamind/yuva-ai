@@ -83,7 +83,7 @@ Solo mode is allowed ONLY for trivial single-file changes, quick questions, or w
 
 ## PROTECTED FILES — NEVER delete, move, or empty
 
-`.yuva/` (task bus + sessions), `.session/`, `.aiautomations/`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.claude/`, `.cursor/`, and any other AI config files. These belong to the orchestration system. Never run `yuva swarm clear` or `yuva session clear` unless the user explicitly asks. "Cleanup" NEVER includes these files.
+`.yuva/` (config + task bus + sessions), `.session/`, `.aiautomations/` (legacy), `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.claude/`, `.cursor/`, and any other AI config files. These belong to the orchestration system. Never run `yuva swarm clear` or `yuva session clear` unless the user explicitly asks. "Cleanup" NEVER includes these files.
 
 ---
 

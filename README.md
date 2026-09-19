@@ -3,8 +3,8 @@
 **[yuvaog.com](https://yuvaog.com/)** | Turn your AI coding tool into a coordinated multi-agent system.
 
 [![npm version](https://img.shields.io/npm/v/yuva-ai.svg)](https://www.npmjs.com/package/yuva-ai)
-[![Tests](https://img.shields.io/badge/tests-300_passing-green.svg)](https://vitest.dev/)
-[![Zero Deps](https://img.shields.io/badge/dependencies-0-blue.svg)](https://github.com/yuvamind/yuva-ai)
+[![Tests](https://img.shields.io/badge/tests-387_passing-green.svg)](https://vitest.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## What It Does
@@ -60,6 +60,7 @@ yuva swarm init                  # Create task bus
 yuva swarm plan "build auth"     # Break goal into tasks
 yuva swarm spawn                 # Open worker terminals
 yuva swarm start                 # Orchestrator dashboard
+yuva swarm unstick               # Release stuck task claims (--all to force)
 yuva task add "title" --role executor
 yuva worker next --role executor
 yuva task done <id> --summary "..."
@@ -121,6 +122,32 @@ AGENTS.md (reads this on startup)
 
 The AI gets real project context, follows enforced rules, and only declares work done when quality gates pass.
 
+## Project Layout
+
+`yuva init` creates a single `.yuva/` directory. Its config half is meant to be
+**committed** so your whole team shares the same agents and gates; only the
+runtime half is gitignored.
+
+```
+.yuva/                COMMIT THIS
+  config.json         tool, model, and gate configuration
+  agents.md           agent index
+  prompts/            your custom agent prompts
+  gates/              your custom quality gates
+  run/                gitignored - regenerated at runtime
+    tasks/            task bus records
+    workers/          worker registrations
+    session/          session state
+    graph/            neural graph cache
+    events.log        event stream
+```
+
+`yuva init` adds a single `.yuva/run/` line to `.gitignore`.
+
+Upgrading from v2.1 or earlier? `yuva upgrade` moves `.aiautomations/` into
+`.yuva/`, relocates runtime state into `.yuva/run/`, and fixes `.gitignore`.
+Until you run it, the old locations keep working.
+
 ## Protected Files
 
 These files are **never** modifiable by AI workers:
@@ -136,7 +163,7 @@ If the AI touches any of these, its task is automatically rejected.
 
 ```bash
 npm install
-npm test                 # 300 tests
+npm test                 # 387 tests
 npm run lint
 ```
 

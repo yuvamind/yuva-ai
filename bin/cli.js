@@ -1,5 +1,14 @@
 #!/usr/bin/env node
 
+// Async commands (swarm, loop, worker) are dispatched without await, so a
+// rejection inside one would otherwise vanish with a zero exit code — the
+// caller would think the command succeeded.
+process.on('unhandledRejection', (err) => {
+  const message = err && err.stack ? err.stack : String(err);
+  process.stderr.write(`\nyuva: unexpected error\n${message}\n`);
+  process.exit(1);
+});
+
 // Parse flags
 const args = process.argv.slice(2);
 // Extract --type <value> before general flag parsing

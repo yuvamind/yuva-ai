@@ -21,8 +21,8 @@ describe('TaskBus', () => {
       expect(bus.stopRequested()).toBe(false);
       bus.requestStop('loop complete');
       expect(bus.stopRequested()).toBe(true);
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'stop'))).toBe(true);
-      const events = fs.readFileSync(path.join(tmpDir, '.yuva', 'events.log'), 'utf8');
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'stop'))).toBe(true);
+      const events = fs.readFileSync(path.join(tmpDir, '.yuva', 'run', 'events.log'), 'utf8');
       expect(events).toContain('swarm.stop');
       bus.clearStop();
       expect(bus.stopRequested()).toBe(false);
@@ -32,8 +32,8 @@ describe('TaskBus', () => {
   describe('init()', () => {
     it('creates the bus directories', () => {
       bus.init();
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'tasks'))).toBe(true);
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'workers'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'tasks'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'workers'))).toBe(true);
       expect(bus.exists()).toBe(true);
     });
   });
@@ -50,7 +50,7 @@ describe('TaskBus', () => {
 
     it('logs an event', () => {
       bus.addTask({ title: 'T1' });
-      const events = fs.readFileSync(path.join(tmpDir, '.yuva', 'events.log'), 'utf8');
+      const events = fs.readFileSync(path.join(tmpDir, '.yuva', 'run', 'events.log'), 'utf8');
       expect(events).toContain('task.added');
     });
   });
@@ -136,7 +136,7 @@ describe('TaskBus', () => {
       bus.completeTask(task.id, {});
       const verified = bus.verifyTask(task.id);
       expect(verified.status).toBe('verified');
-      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'tasks', `${task.id}.claim`))).toBe(false);
+      expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'tasks', `${task.id}.claim`))).toBe(false);
     });
 
     it('rejectTask returns the task to pending with feedback, reclaimable', () => {
@@ -173,31 +173,105 @@ describe('TaskBus', () => {
   });
 
   describe('releaseStale()', () => {
-    it('releases tasks claimed by silent loop workers, but not interactive ones', () => {
+    const backdateWorker = (workerId, ms) => {
+      const file = path.join(tmpDir, '.yuva', 'run', 'workers', `${workerId}.json`);
+      const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+      data.lastSeenAt = new Date(Date.now() - ms).toISOString();
+      fs.writeFileSync(file, JSON.stringify(data));
+    };
+
+    const backdateClaim = (taskId, ms) => {
+      const stamp = new Date(Date.now() - ms).toISOString();
+      bus.updateTask(taskId, { claimedAt: stamp, leaseRenewedAt: stamp });
+    };
+
+    it('releases tasks claimed by loop workers that stopped heartbeating', () => {
       const task = bus.addTask({ title: 'T1', role: 'executor' });
       const worker = bus.registerWorker({ role: 'executor', mode: 'auto' });
       bus.claimTask(worker.id, 'executor');
 
-      // Backdate the worker heartbeat past the stale threshold
-      const file = path.join(tmpDir, '.yuva', 'workers', `${worker.id}.json`);
-      const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-      data.lastSeenAt = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      fs.writeFileSync(file, JSON.stringify(data));
+      backdateWorker(worker.id, 10 * 60 * 1000);
 
       const released = bus.releaseStale();
       expect(released.length).toBe(1);
       expect(bus.getTask(task.id).status).toBe('pending');
+    });
 
-      // Interactive worker with an old heartbeat is left alone
-      const interactive = bus.registerWorker({ role: 'executor', mode: 'interactive' });
-      const claimed = bus.claimTask(interactive.id, 'executor');
-      const file2 = path.join(tmpDir, '.yuva', 'workers', `${interactive.id}.json`);
-      const data2 = JSON.parse(fs.readFileSync(file2, 'utf8'));
-      data2.lastSeenAt = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      fs.writeFileSync(file2, JSON.stringify(data2));
+    it('releases an interactive claim once its lease expires', () => {
+      // Interactive workers are one-shot and can never heartbeat, so the
+      // lease ceiling is the only thing that can free their tasks. Without
+      // it a closed worker terminal blocks its task — and every dependent
+      // task — forever.
+      const task = bus.addTask({ title: 'T1', role: 'executor' });
+      const worker = bus.registerWorker({ role: 'executor', mode: 'interactive' });
+      bus.claimTask(worker.id, 'executor');
+
+      // A fresh claim is left alone, even with a long-silent heartbeat.
+      backdateWorker(worker.id, 10 * 60 * 1000);
+      expect(bus.releaseStale().length).toBe(0);
+      expect(bus.getTask(task.id).status).toBe('claimed');
+
+      // Past the lease ceiling it is reclaimed.
+      backdateClaim(task.id, 31 * 60 * 1000);
+      const released = bus.releaseStale();
+      expect(released.length).toBe(1);
+      expect(bus.getTask(task.id).status).toBe('pending');
+      expect(bus.getTask(task.id).claimedBy).toBeNull();
+    });
+
+    it('renewing a lease keeps a long-running interactive task claimed', () => {
+      const task = bus.addTask({ title: 'T1', role: 'executor' });
+      const worker = bus.registerWorker({ role: 'executor', mode: 'interactive' });
+      bus.claimTask(worker.id, 'executor');
+
+      backdateClaim(task.id, 31 * 60 * 1000);
+      expect(bus.renewClaim(task.id, worker.id)).toBeTruthy();
 
       expect(bus.releaseStale().length).toBe(0);
-      expect(bus.getTask(claimed.id).status).toBe('claimed');
+      expect(bus.getTask(task.id).status).toBe('claimed');
+    });
+
+    it('releases orphaned claims whose worker record is gone', () => {
+      const task = bus.addTask({ title: 'T1', role: 'executor' });
+      const worker = bus.registerWorker({ role: 'executor', mode: 'interactive' });
+      bus.claimTask(worker.id, 'executor');
+
+      bus.removeWorker(worker.id);
+
+      const released = bus.releaseStale();
+      expect(released.length).toBe(1);
+      expect(bus.getTask(task.id).status).toBe('pending');
+    });
+
+    it('marks a claimed worker as working, not idle', () => {
+      bus.addTask({ title: 'T1', role: 'executor' });
+      const worker = bus.registerWorker({ role: 'executor', mode: 'interactive' });
+      const task = bus.claimTask(worker.id, 'executor');
+
+      const after = bus.listWorkers().find(w => w.id === worker.id);
+      expect(after.status).toBe('working');
+      expect(after.currentTask).toBe(task.id);
+    });
+  });
+
+  describe('releaseTask()', () => {
+    it('returns a claimed task to the pending pool', () => {
+      const task = bus.addTask({ title: 'T1', role: 'executor' });
+      const worker = bus.registerWorker({ role: 'executor', mode: 'interactive' });
+      bus.claimTask(worker.id, 'executor');
+
+      const released = bus.releaseTask(task.id, 'manual unstick');
+      expect(released.status).toBe('pending');
+      expect(released.claimedBy).toBeNull();
+
+      // The claim lock is gone, so another worker can take it
+      const other = bus.registerWorker({ role: 'executor', mode: 'interactive' });
+      expect(bus.claimTask(other.id, 'executor').id).toBe(task.id);
+    });
+
+    it('ignores tasks that are not claimed', () => {
+      const task = bus.addTask({ title: 'T1' });
+      expect(bus.releaseTask(task.id)).toBeNull();
     });
   });
 

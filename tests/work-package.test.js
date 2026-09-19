@@ -54,7 +54,7 @@ describe('work-package', () => {
   });
 
   it('prefers local .aiautomations prompt overrides', () => {
-    const promptsDir = path.join(tmpDir, '.aiautomations', 'prompts');
+    const promptsDir = path.join(tmpDir, '.yuva', 'prompts');
     fs.mkdirSync(promptsDir, { recursive: true });
     fs.writeFileSync(path.join(promptsDir, 'execution.md'), 'LOCAL OVERRIDE PROMPT');
 
@@ -64,9 +64,9 @@ describe('work-package', () => {
   });
 
   it('lists detected quality gates in the completion protocol', () => {
-    fs.mkdirSync(path.join(tmpDir, '.aiautomations'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.yuva'), { recursive: true });
     fs.writeFileSync(
-      path.join(tmpDir, '.aiautomations', 'config.json'),
+      path.join(tmpDir, '.yuva', 'config.json'),
       JSON.stringify({ gates: { lint: 'my-lint-cmd' } })
     );
 
