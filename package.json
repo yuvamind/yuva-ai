@@ -69,6 +69,7 @@
     "lib/",
     "template/",
     "index.js",
+    "CHANGELOG.md",
     "README.md",
     "LICENSE"
   ],
