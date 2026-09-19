@@ -128,7 +128,7 @@ jobs:
           echo "userconfig: ${NPM_CONFIG_USERCONFIG:-<unset>}"
           # Show whether setup-node left an auth line behind (value redacted).
           if [ -n "$NPM_CONFIG_USERCONFIG" ] && [ -f "$NPM_CONFIG_USERCONFIG" ]; then
-            sed -E 's/(_authToken=).*/<redacted>/' "$NPM_CONFIG_USERCONFIG"
+            grep -c "_authToken" "$NPM_CONFIG_USERCONFIG" | xargs -I{} echo "auth lines in .npmrc: {}"
           fi
           echo "--- publishing (verbose shows the OIDC exchange, if attempted) ---"
           npm publish --access public --loglevel verbose
