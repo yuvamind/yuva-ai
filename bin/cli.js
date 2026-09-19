@@ -164,7 +164,7 @@ function showHelp() {
   log('  npx yuva llm use gpt');
   log('  npx yuva status\n');
 
-  log('Documentation: https://github.com/Aftab-web-dev/yuva-ai\n', 'cyan');
+  log('Documentation: https://github.com/yuvamind/yuva-ai\n', 'cyan');
 }
 
 // Route commands

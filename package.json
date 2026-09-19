@@ -58,11 +58,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Aftab-web-dev/yuva-ai.git"
+    "url": "git+https://github.com/yuvamind/yuva-ai.git"
   },
   "homepage": "https://yuvaog.com/",
   "bugs": {
-    "url": "https://github.com/Aftab-web-dev/yuva-ai/issues"
+    "url": "https://github.com/yuvamind/yuva-ai/issues"
   },
   "files": [
     "bin/",
