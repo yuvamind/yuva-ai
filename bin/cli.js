@@ -104,6 +104,11 @@ function showHelp() {
   log('  loop status       Show loop state and task counts');
   log('  loop stop         Signal the loop and all workers to stop\n');
 
+  log('Token Optimizer (cut what you send, not what you get back):', 'bright');
+  log('  tokens profile    Token profile of a work package (frozen vs per-task)');
+  log('  tokens project    Projected input cost for the current task bus');
+  log('  tokens doctor     Find prompt-cache breakers\n');
+
   log('Swarm (multi-terminal orchestrator/worker mode — DEFAULT for big tasks):', 'bright');
   log('  swarm init        Create the task bus (.yuva/)');
   log('  swarm plan "goal" Print the orchestrator planning brief');
@@ -232,6 +237,11 @@ switch (command) {
   case 'gate': {
     const gateCommand = require('../lib/commands/gate');
     gateCommand(rawSubArgs());
+    break;
+  }
+  case 'tokens': {
+    const tokensCommand = require('../lib/commands/tokens');
+    tokensCommand(rawSubArgs());
     break;
   }
   case 'swarm': {

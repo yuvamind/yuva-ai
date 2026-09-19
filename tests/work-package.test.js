@@ -31,7 +31,10 @@ describe('work-package', () => {
     });
 
     const pkg = buildWorkPackage(task, tmpDir);
-    expect(pkg).toContain(`Work Package — Task ${task.id}`);
+    // The banner is role-scoped so it can head the cacheable prefix; the task
+    // id now appears in the per-task section at the end.
+    expect(pkg).toContain(`Yuva Work Package - ${task.role} worker`);
+    expect(pkg).toContain(`YOUR TASK - ${task.id}`);
     expect(pkg).toContain('Build login');
     expect(pkg).toContain('JWT-based auth');
     // Agent prompt comes from the package template dir
