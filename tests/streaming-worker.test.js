@@ -149,4 +149,39 @@ describe('StreamingWorker', () => {
     const result = await worker.run('task-missing', 'definitely-not-a-real-cli-xyz', { cwd: tmpDir });
     expect(result.code).not.toBe(0);
   });
+
+  it('survives the output directory disappearing mid-run', async () => {
+    // createWriteStream opens asynchronously. If the directory is gone by the
+    // time the open lands, the stream emits 'error' — and with no listener
+    // that becomes an uncaught exception that kills the whole process, long
+    // after run() has already resolved. CI caught exactly this race.
+    const uncaught = [];
+    const onUncaught = (err) => uncaught.push(err);
+    process.on('uncaughtException', onUncaught);
+
+    try {
+      const pending = worker.run('task-vanishing', 'definitely-not-a-real-cli-xyz', { cwd: tmpDir });
+      // Remove the log directory while the open is still in flight.
+      fs.rmSync(worker.outputDir, { recursive: true, force: true });
+
+      const result = await pending;
+      expect(result.code).not.toBe(0);
+
+      // Give the stream's pending open a turn to fail.
+      await new Promise(r => setTimeout(r, 50));
+      expect(uncaught).toEqual([]);
+    } finally {
+      process.off('uncaughtException', onUncaught);
+    }
+  });
+
+  it('keeps capturing stdout when the log file cannot be written', async () => {
+    // The log is diagnostic. Losing it must not lose the command's output.
+    const script = writeScript(tmpDir, 'echo.js', 'process.stdout.write("hello from the task\\n");');
+    const pending = worker.run('task-nolog', `node ${JSON.stringify(script)}`, { cwd: tmpDir });
+    fs.rmSync(worker.outputDir, { recursive: true, force: true });
+
+    const result = await pending;
+    expect(result.stdout).toContain('hello from the task');
+  });
 });
