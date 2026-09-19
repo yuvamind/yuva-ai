@@ -123,8 +123,6 @@ jobs:
         # Both are wired so whichever is available wins — check the "Set up job"
         # log for `IdToken: write` to see which path a given run took.
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Commit, tag and push
         if: ${{ !inputs.dry_run }}
