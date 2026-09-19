@@ -1,0 +1,42 @@
+# Lint and test on every push and pull request.
+# This is the gate the release workflow reuses — nothing publishes without it.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_call: # let release.yml run this exact job before publishing
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Oldest supported LTS through current. package.json says >=14, but
+        # the test suite uses fs.cpSync and modern syntax, so 20 is the floor.
+        node-version: ['20', '22', '24']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      # The suite exercises git isolation (it creates branches and commits),
+      # which fails on a runner with no committer identity configured.
+      - name: Configure git identity for isolation tests
+        run: |
+          git config --global user.name "CI"
+          git config --global user.email "ci@example.com"
+          git config --global init.defaultBranch main
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm test

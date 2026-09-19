@@ -1,0 +1,128 @@
+# One-button release: test -> bump -> tag -> GitHub Release -> npm publish.
+#
+# Everything happens in ONE workflow on purpose. The previous setup split
+# bumping and publishing across two files and relied on the release event to
+# chain them — but GitHub does not trigger workflows from events created with
+# the default GITHUB_TOKEN (a recursion guard), so the publish half never ran.
+# Keeping it in one job removes that whole class of failure.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump'
+        required: true
+        default: 'patch'
+        type: choice
+        options: [patch, minor, major]
+      dry_run:
+        description: 'Dry run (build and verify, publish nothing)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write # push the bump commit and create the release
+  id-token: write # npm Trusted Publishing (OIDC) + provenance
+
+jobs:
+  # Reuse the exact CI job rather than re-describing it here, so the release
+  # gate can never drift from the checks that run on every push.
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Node >= 22.14 is required for npm Trusted Publishing (OIDC).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - run: npm ci
+
+      # Global, not repo-local: `prepublishOnly` runs the test suite during
+      # `npm publish`, and those tests create throwaway git repos in temp dirs
+      # that would otherwise have no committer identity.
+      - name: Configure git identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global init.defaultBranch main
+
+      - name: Bump version
+        id: version
+        run: |
+          npm version "${{ inputs.bump }}" --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing $VERSION"
+
+      - name: Refuse to republish an existing version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          # `npm view` exits non-zero when the version does not exist, which is
+          # the success case here.
+          if npm view "yuva-ai@$VERSION" version >/dev/null 2>&1; then
+            echo "::error::yuva-ai@$VERSION is already on npm. Pick a different bump."
+            exit 1
+          fi
+          echo "$VERSION is free."
+
+      - name: Verify the tarball contents
+        run: |
+          npm pack --dry-run
+          # The package is useless without its agent templates — catch an
+          # ignore-rule regression here rather than in a user's install.
+          npm pack --dry-run 2>&1 | grep -q 'template/.yuva/prompts/' \
+            || { echo "::error::template/.yuva/prompts/ missing from tarball"; exit 1; }
+          rm -f ./*.tgz
+
+      - name: Publish to npm
+        if: ${{ !inputs.dry_run }}
+        run: npm publish --access public
+        env:
+          # npm prefers OIDC when a trusted publisher is configured for this
+          # package and falls back to this token otherwise, so the workflow
+          # works either way. Provenance is attached automatically under OIDC.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Commit, tag and push
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git add package.json package-lock.json
+          git commit -m "chore(release): ${{ steps.version.outputs.version }}"
+          git tag "${{ steps.version.outputs.tag }}"
+          git push origin HEAD:main --follow-tags
+
+      - name: Create GitHub Release
+        if: ${{ !inputs.dry_run }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          body: |
+            ```bash
+            npm install -g yuva-ai@${{ steps.version.outputs.version }}
+            ```
+
+      - name: Summary
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "### Dry run - nothing published" >> "$GITHUB_STEP_SUMMARY"
+            echo "Would have released \`${{ steps.version.outputs.version }}\`." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### Published yuva-ai@${{ steps.version.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+            echo "https://www.npmjs.com/package/yuva-ai/v/${{ steps.version.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          fi

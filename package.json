@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "doctor": "node bin/cli.js doctor",
-    "postinstall": "node bin/postinstall.js"
+    "postinstall": "node bin/postinstall.js",
+    "prepublishOnly": "npm run lint && npm test"
   },
   "keywords": [
     "yuva",
