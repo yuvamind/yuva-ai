@@ -45,10 +45,17 @@ jobs:
           fetch-depth: 0
 
       # Node >= 22.14 is required for npm Trusted Publishing (OIDC).
+      #
+      # registry-url is deliberately OMITTED. It makes setup-node write an
+      # .npmrc containing `_authToken=${NODE_AUTH_TOKEN}` and export
+      # NODE_AUTH_TOKEN as the literal placeholder XXXXX-XXXXX-XXXXX-XXXXX
+      # when no token is supplied. npm then authenticates with that garbage
+      # value, is rejected, and never attempts the OIDC exchange - a bad
+      # credential is worse than none. registry.npmjs.org is the default
+      # registry anyway, so nothing is lost by leaving it out.
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
           cache: npm
 
       - run: npm ci
