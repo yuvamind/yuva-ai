@@ -96,12 +96,14 @@ describe('paths', () => {
       write('.yuva/tasks/abc.json', '{}');
       write('.yuva/workers/w-1.json', '{}');
       write('.yuva/events.log', 'line\n');
+      write('.yuva/costs.json', '{}');
 
       P.migrate(tmpDir);
 
       expect(exists('.yuva/run/tasks/abc.json')).toBe(true);
       expect(exists('.yuva/run/workers/w-1.json')).toBe(true);
       expect(exists('.yuva/run/events.log')).toBe(true);
+      expect(exists('.yuva/run/costs.json')).toBe(true);
       expect(exists('.yuva/tasks')).toBe(false);
     });
 

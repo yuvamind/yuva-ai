@@ -12,7 +12,7 @@ describe('terminal-spawn', () => {
       // Passing argv entries keeps every argument intact.
       const spec = buildSpawnSpec('win32', cmd, opts);
       expect(spec.cmd).toBe('cmd.exe');
-      expect(spec.args).toEqual(['/c', 'start', 'yuva executor', '/D', 'C:\\proj', 'cmd.exe', '/k', cmd]);
+      expect(spec.args).toEqual(['/d', '/c', 'start', '', '/D', 'C:\\proj', 'cmd.exe', '/d', '/k', cmd]);
       expect(spec.options.shell).toBeUndefined();
       expect(spec.options.detached).toBe(true);
     });
@@ -36,6 +36,12 @@ describe('terminal-spawn', () => {
       expect(spec.args[1]).toContain('x-terminal-emulator');
       expect(spec.args[1]).toContain('gnome-terminal');
       expect(spec.args[1]).toContain(`cd '/proj' && ${cmd}`);
+    });
+
+    it('linux: shell-quotes project paths before embedding them in bash', () => {
+      const spec = buildSpawnSpec('linux', cmd, { cwd: "/tmp/user's project" });
+      expect(spec.args[1]).toContain("cd '/tmp/user'\\''s project' &&");
+      expect(spec.args[1]).not.toContain("cd '/tmp/user's project'");
     });
   });
 

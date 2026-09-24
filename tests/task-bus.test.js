@@ -53,6 +53,26 @@ describe('TaskBus', () => {
       const events = fs.readFileSync(path.join(tmpDir, '.yuva', 'run', 'events.log'), 'utf8');
       expect(events).toContain('task.added');
     });
+
+    it('rejects dependencies that do not exist', () => {
+      expect(() => bus.addTask({ title: 'blocked', deps: ['missing-task'] }))
+        .toThrow('Unknown task dependency: missing-task');
+    });
+
+    it('rejects self-dependencies and dependency cycles', () => {
+      const first = bus.addTask({ title: 'first' });
+      expect(() => bus.updateTask(first.id, { deps: [first.id] }))
+        .toThrow(/cycle detected/i);
+
+      const second = bus.addTask({ title: 'second', deps: [first.id] });
+      const firstFile = path.join(tmpDir, '.yuva', 'run', 'tasks', `${first.id}.json`);
+      const firstRecord = bus.getTask(first.id);
+      firstRecord.deps = [second.id]; // Simulate a legacy/corrupt cycle on disk.
+      fs.writeFileSync(firstFile, JSON.stringify(firstRecord));
+
+      expect(() => bus.addTask({ title: 'third', deps: [second.id] }))
+        .toThrow(/cycle detected/i);
+    });
   });
 
   describe('listTasks()', () => {
@@ -67,6 +87,22 @@ describe('TaskBus', () => {
 
       const pending = bus.listTasks({ status: 'pending' });
       expect(pending.length).toBe(3);
+    });
+  });
+
+  describe('updateTask()', () => {
+    it('reclaims abandoned update locks and removes its lock after writing', () => {
+      const task = bus.addTask({ title: 'T1' });
+      const lockFile = path.join(tmpDir, '.yuva', 'run', 'tasks', `${task.id}.update.lock`);
+      fs.writeFileSync(lockFile, 'dead-process');
+      const stale = new Date(Date.now() - 60 * 1000);
+      fs.utimesSync(lockFile, stale, stale);
+
+      const updated = bus.updateTask(task.id, { summary: 'updated' }, 'recorded update');
+
+      expect(updated.summary).toBe('updated');
+      expect(updated.history.at(-1).note).toBe('recorded update');
+      expect(fs.existsSync(lockFile)).toBe(false);
     });
   });
 
@@ -108,7 +144,7 @@ describe('TaskBus', () => {
       expect(first.id).toBe(dep.id);
       expect(bus.claimTask(worker.id, 'executor')).toBeNull();
 
-      bus.completeTask(dep.id, { summary: 'done' });
+      bus.completeTask(dep.id, { summary: 'done', workerId: worker.id });
       bus.verifyTask(dep.id);
 
       const second = bus.claimTask(worker.id, 'executor');
@@ -126,21 +162,24 @@ describe('TaskBus', () => {
     });
 
     it('completeTask moves to done with summary', () => {
-      const done = bus.completeTask(task.id, { summary: 'implemented' });
+      const done = bus.completeTask(task.id, { summary: 'implemented', workerId: worker.id });
       expect(done.status).toBe('done');
       expect(done.summary).toBe('implemented');
       expect(done.completedAt).toBeTruthy();
+      const workerAfter = bus.listWorkers().find(w => w.id === worker.id);
+      expect(workerAfter.status).toBe('idle');
+      expect(workerAfter.currentTask).toBeNull();
     });
 
     it('verifyTask moves to verified and releases the claim', () => {
-      bus.completeTask(task.id, {});
+      bus.completeTask(task.id, { workerId: worker.id });
       const verified = bus.verifyTask(task.id);
       expect(verified.status).toBe('verified');
       expect(fs.existsSync(path.join(tmpDir, '.yuva', 'run', 'tasks', `${task.id}.claim`))).toBe(false);
     });
 
     it('rejectTask returns the task to pending with feedback, reclaimable', () => {
-      bus.completeTask(task.id, {});
+      bus.completeTask(task.id, { workerId: worker.id });
       const rejected = bus.rejectTask(task.id, 'tests failing');
       expect(rejected.status).toBe('pending');
       expect(rejected.feedback).toBe('tests failing');
@@ -152,9 +191,36 @@ describe('TaskBus', () => {
     });
 
     it('failTask marks failed with reason', () => {
-      const failed = bus.failTask(task.id, 'blocked on API key');
+      const failed = bus.failTask(task.id, 'blocked on API key', { workerId: worker.id });
       expect(failed.status).toBe('failed');
       expect(failed.feedback).toBe('blocked on API key');
+      const workerAfter = bus.listWorkers().find(w => w.id === worker.id);
+      expect(workerAfter.status).toBe('idle');
+      expect(workerAfter.currentTask).toBeNull();
+    });
+  });
+
+  describe('ownership checks', () => {
+    it('rejects completion by a different worker', () => {
+      const task = bus.addTask({ title: 'T1', role: 'executor' });
+      const owner = bus.registerWorker({ role: 'executor' });
+      const other = bus.registerWorker({ role: 'executor' });
+      bus.claimTask(owner.id, 'executor');
+
+      expect(bus.completeTask(task.id, { workerId: other.id })).toBeNull();
+      expect(bus.getTask(task.id).status).toBe('claimed');
+      expect(bus.getTask(task.id).claimedBy).toBe(owner.id);
+    });
+
+    it('rejects failure by a different worker', () => {
+      const task = bus.addTask({ title: 'T1', role: 'executor' });
+      const owner = bus.registerWorker({ role: 'executor' });
+      const other = bus.registerWorker({ role: 'executor' });
+      bus.claimTask(owner.id, 'executor');
+
+      expect(bus.failTask(task.id, 'not mine', { workerId: other.id })).toBeNull();
+      expect(bus.getTask(task.id).status).toBe('claimed');
+      expect(bus.getTask(task.id).claimedBy).toBe(owner.id);
     });
   });
 
@@ -252,6 +318,18 @@ describe('TaskBus', () => {
       expect(after.status).toBe('working');
       expect(after.currentTask).toBe(task.id);
     });
+
+    it('clears completed interactive workers so stale records can be pruned', () => {
+      const task = bus.addTask({ title: 'T1', role: 'executor' });
+      const worker = bus.registerWorker({ role: 'executor', mode: 'interactive' });
+      bus.claimTask(worker.id, 'executor');
+      bus.completeTask(task.id, { workerId: worker.id });
+
+      backdateWorker(worker.id, 10 * 60 * 1000);
+      bus.releaseStale();
+
+      expect(bus.listWorkers().find(w => w.id === worker.id)).toBeUndefined();
+    });
   });
 
   describe('releaseTask()', () => {
@@ -278,10 +356,10 @@ describe('TaskBus', () => {
   describe('getStatusSummary()', () => {
     it('counts tasks by status', () => {
       bus.addTask({ title: 'T1' });
-      const t2 = bus.addTask({ title: 'T2' });
+      bus.addTask({ title: 'T2' });
       const worker = bus.registerWorker({});
-      bus.claimTask(worker.id);
-      bus.completeTask(t2.id === bus.listTasks({ status: 'claimed' })[0].id ? t2.id : bus.listTasks({ status: 'claimed' })[0].id, {});
+      const claimed = bus.claimTask(worker.id);
+      bus.completeTask(claimed.id, { workerId: worker.id });
 
       const summary = bus.getStatusSummary();
       expect(summary.total).toBe(2);

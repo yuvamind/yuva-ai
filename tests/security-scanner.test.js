@@ -27,6 +27,19 @@ const password = "supersecretpassword123";
       expect(secrets.length).toBeGreaterThan(0);
     });
 
+    it('should scan exact .env files and .env variants for secrets', () => {
+      fs.writeFileSync(path.join(tmpDir, '.env'), 'api_key="aaaaaaaaaaaaaaaaaaaaaaaa"');
+      fs.writeFileSync(path.join(tmpDir, '.env.local'), 'password="supersecretpassword123"');
+
+      const scan = runSecurityScan(tmpDir);
+      const secretFiles = scan.findings
+        .filter(f => f.category === 'secrets')
+        .map(f => f.file);
+
+      expect(secretFiles).toContain('.env');
+      expect(secretFiles).toContain('.env.local');
+    });
+
     it('should detect .env not in .gitignore', () => {
       fs.writeFileSync(path.join(tmpDir, '.env'), 'SECRET=123');
       fs.writeFileSync(path.join(tmpDir, '.gitignore'), 'node_modules/');
@@ -34,6 +47,21 @@ const password = "supersecretpassword123";
       const scan = runSecurityScan(tmpDir);
       const config = scan.findings.filter(f => f.category === 'config');
       expect(config.some(f => f.title.includes('.env'))).toBe(true);
+    });
+
+    it('should match .gitignore entries exactly instead of using substrings', () => {
+      fs.writeFileSync(path.join(tmpDir, '.env'), 'SECRET=123');
+      fs.writeFileSync(path.join(tmpDir, '.env.local'), 'SECRET=456');
+      fs.writeFileSync(path.join(tmpDir, '.gitignore'), '.env.local\n# .env\n');
+
+      const scan = runSecurityScan(tmpDir);
+      const titles = scan.findings
+        .filter(f => f.category === 'config')
+        .map(f => f.title);
+
+      expect(titles).toContain('.env file not in .gitignore');
+      expect(titles).toContain('.env not in .gitignore');
+      expect(titles).not.toContain('.env.local not in .gitignore');
     });
 
     it('should detect dangerous patterns', () => {

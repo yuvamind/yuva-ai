@@ -165,6 +165,14 @@ describe('NeuralGraph', () => {
       expect(results[0].name).toBe('auth.js');
     });
 
+    it('should remove stale search terms when a node is updated', () => {
+      const id = graph.addNode(NODE_TYPES.FILE, 'config.js', { summary: 'legacyterm settings' });
+      graph.addNode(NODE_TYPES.FILE, 'config.js', { summary: 'modernterm settings' });
+
+      expect(graph.query('legacyterm').some(result => result.id === id)).toBe(false);
+      expect(graph.query('modernterm').some(result => result.id === id)).toBe(true);
+    });
+
     it('should filter by type', () => {
       graph.addNode(NODE_TYPES.FILE, 'auth.js');
       graph.addNode(NODE_TYPES.FUNCTION, 'authenticate');

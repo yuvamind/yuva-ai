@@ -5,8 +5,12 @@ describe('colors', () => {
   describe('colorize', () => {
     it('should wrap text in color codes', () => {
       const result = colorize('hello', 'green');
-      expect(result).toContain('\x1b[');
       expect(result).toContain('hello');
+      // picocolors correctly disables ANSI output when the test runner is not
+      // attached to a TTY; verify codes only when color output is enabled.
+      if (process.stdout.isTTY || process.env.FORCE_COLOR) {
+        expect(result).toContain('\x1b[');
+      }
     });
 
     it('should handle unknown colors gracefully', () => {

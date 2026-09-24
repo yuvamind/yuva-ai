@@ -104,6 +104,34 @@ const db = process.env.DATABASE_URL;
       const result = runPluginGates(tmpDir);
       expect(result.passed).toBe(true);
     });
+
+    it('should report warning findings without blocking the result', () => {
+      fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'src', 'app.js'), 'console.log("debug");');
+
+      const result = runPluginGates(tmpDir);
+      const gate = result.gates.find(g => g.id === 'no-console-log');
+
+      expect(gate.passed).toBe(false);
+      expect(gate.blocking).toBe(false);
+      expect(result.passed).toBe(true);
+      expect(result.blockingFailures).toHaveLength(0);
+    });
+
+    it('should block on error-level custom findings', () => {
+      fs.mkdirSync(path.join(tmpDir, '.yuva', 'gates'), { recursive: true });
+      fs.writeFileSync(
+        path.join(tmpDir, '.yuva', 'gates', 'blocking.js'),
+        'module.exports = { name: "Blocking gate", severity: "error", run: () => [{ message: "blocked" }] };'
+      );
+
+      const result = runPluginGates(tmpDir);
+      const gate = result.gates.find(g => g.id === 'blocking');
+
+      expect(gate.blocking).toBe(true);
+      expect(result.passed).toBe(false);
+      expect(result.blockingFailures).toHaveLength(1);
+    });
   });
 
   describe('formatPluginGates()', () => {

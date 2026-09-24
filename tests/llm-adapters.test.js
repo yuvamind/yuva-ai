@@ -1,5 +1,16 @@
 
-const { getAvailableLLMs, getLLMsByCategory, getLLMConfig, generateLLMConfig, getModelSuggestions } = require('../lib/llm-adapters');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const {
+  getAvailableLLMs,
+  getLLMsByCategory,
+  getLLMConfig,
+  generateLLMConfig,
+  getModelSuggestions,
+  detectLLM,
+  detectAllLLMs,
+} = require('../lib/llm-adapters');
 
 describe('llm-adapters', () => {
   describe('getAvailableLLMs', () => {
@@ -97,6 +108,55 @@ describe('llm-adapters', () => {
     it('should return empty array for LLMs without models', () => {
       const models = getModelSuggestions('gpt');
       expect(models).toEqual([]);
+    });
+  });
+
+  describe('detection', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yuva-llm-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    it('does not report every shared AGENTS.md consumer', () => {
+      fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), '# shared instructions');
+
+      expect(detectAllLLMs(tmpDir)).toEqual([]);
+      expect(detectLLM(tmpDir)).toBeNull();
+    });
+
+    it('uses explicit project metadata to identify a shared config', () => {
+      fs.mkdirSync(path.join(tmpDir, '.yuva'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), '# shared instructions');
+      fs.writeFileSync(
+        path.join(tmpDir, '.yuva', 'config.json'),
+        JSON.stringify({ llm: 'codex' })
+      );
+
+      expect(detectAllLLMs(tmpDir).map(llm => llm.id)).toEqual(['codex']);
+      expect(detectLLM(tmpDir).id).toBe('codex');
+    });
+
+    it('detects a platform with a unique config file', () => {
+      fs.writeFileSync(path.join(tmpDir, 'GEMINI.md'), '# Gemini instructions');
+
+      expect(detectAllLLMs(tmpDir).map(llm => llm.id)).toEqual(['gemini']);
+      expect(detectLLM(tmpDir).id).toBe('gemini');
+    });
+
+    it('uses legacy project config when identifying a shared config', () => {
+      fs.mkdirSync(path.join(tmpDir, '.aiautomations'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), '# shared instructions');
+      fs.writeFileSync(
+        path.join(tmpDir, '.aiautomations', 'config.json'),
+        JSON.stringify({ tool: 'codex' })
+      );
+
+      expect(detectAllLLMs(tmpDir).map(llm => llm.id)).toEqual(['codex']);
     });
   });
 });

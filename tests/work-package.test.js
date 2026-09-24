@@ -48,7 +48,7 @@ describe('work-package', () => {
     const task = bus.addTask({ title: 'T1', role: 'tester' });
     const worker = bus.registerWorker({ role: 'tester' });
     bus.claimTask(worker.id, 'tester');
-    bus.completeTask(task.id, {});
+    bus.completeTask(task.id, { workerId: worker.id });
     bus.rejectTask(task.id, 'tests do not cover the error path');
 
     const pkg = buildWorkPackage(bus.getTask(task.id), tmpDir);
