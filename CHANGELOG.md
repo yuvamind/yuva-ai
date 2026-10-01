@@ -5,6 +5,288 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+#### Design capability — the gap between Yuva and Lovable/Bolt/v0
+
+Yuva could build correct software and not design it. Twelve dev agents, eight
+standards, four quality gates — and nothing in the chain owned *visual outcome*.
+`frontendstandards.md` covered folder naming and hooks order; nothing covered
+type scales, colour systems, or composition. And every gate read source text, so
+`lint`, `typecheck`, `test` and `build` all passed on UI that looked terrible.
+
+**`.yuva/standards/designsystem.md`** — the taste layer. Formula-based rules an
+agent can actually follow: OKLCH ramp generation, modular type scales, 60-30-10
+colour allocation, relatedness-proportional spacing, layered shadows, motion
+budgets, the five required data states, and a 14-item anti-generic checklist
+whose items are all machine-detectable.
+
+**Design agent** (`yuva agent show design`) — runs between Risk and Planner,
+because design decisions made *during* implementation get made as framework
+defaults, and framework defaults are what generic UI is. Produces
+`docs/design-system.md` (including rejected alternatives, so Execution cannot
+regress a deliberate choice) and `src/styles/tokens.css`.
+
+**Visual QA agent** (`yuva agent show visualqa`) — runs the gate, then opens the
+screenshots and works a 10-item human-judgement rubric the automated rules
+cannot cover.
+
+#### `visual` quality gate
+
+```bash
+yuva gate visual
+```
+
+Boots the dev server, renders every configured route at every configured
+viewport in Chromium, screenshots each, and audits the **rendered** result —
+computed styles, not source text. Writes screenshots plus a review rubric to
+`.yuva/run/visual/<timestamp>/`.
+
+17 rules. Blocking: `generic-accent` (Tailwind blue-500 / Bootstrap primary),
+`low-contrast` (WCAG AA, computed), `focus-suppressed`, `horizontal-overflow`,
+`heading-order`, `missing-alt`, `console-error`. Advisory: `pure-surface`,
+`type-scale-sprawl`, `grey-sprawl`, `flat-shadow`, `transition-all`,
+`uniform-spacing`, `radius-sprawl`, `no-tabular-nums`, `div-as-button`,
+`no-reduced-motion`.
+
+Three implementation notes worth recording, each found by testing against a real
+browser rather than reasoning about it:
+
+- **The CSSOM is not what you wrote.** Chrome serialises
+  `transition: all 0.3s ease` as `transition: 0.3s`, dropping `all` because it
+  is the initial value — so matching declaration *text* can never detect it.
+  Read computed style instead.
+- **Chrome returns `oklch()` computed colours as `oklch()`**, not `rgb()`. The
+  contrast rules were silently skipping every colour authored in the space
+  `designsystem.md` mandates. `lib/design-audit.js` now implements OKLab →
+  sRGB, validated to **zero channel delta** against Chrome's own conversion
+  across 10 cases including `%` lightness and slash alpha.
+- **Headless Chromium reports `prefers-reduced-motion: reduce`**, which makes a
+  *correct* reduced-motion block flatten every duration to `1e-05s`. Without a
+  duration floor, well-designed pages reported dozens of false violations.
+
+Focus detection is empirical rather than parsed: each control is focused and
+checked for an actual indicator, because computed `outline-width` reports a
+value even when `outline-style: none` hides it.
+
+**Opt-in.** The gate appears only once `visual` is configured, so existing
+projects upgrade with no behaviour change. Playwright is a peer concern, never a
+dependency — the gate reports how to install it rather than bloating every
+install.
+
+**`.yuva/templates/tokens.css`** — a complete starting token system (OKLCH ramp,
+type scale, spacing, layered shadows, easing curves, dark mode as a redesign
+rather than an inversion) with every contrast ratio computed and recorded. A
+page built only from these tokens passes the gate with zero findings.
+
+### Fixed (review pass 2 — correctness and source-of-truth)
+
+Two external reviews found the design capability was a strong manifesto on an
+unexecutable contract. Everything verifiable in both held. Most damaging was
+self-inflicted: `frontendstandards.md` was copied into the package on its heading
+outline, so it shipped examples the project's own gate flags.
+
+**Contradictions that misled (agents copy examples, not prose)**
+
+- `frontendstandards.md` presented `<div onClick={...}>` under a `// Good` comment
+  in a section titled "Functional Components (Preferred)" — code that
+  `lib/design-audit.js`'s own `div-as-button` rule flags and `designsystem.md`
+  calls a defect. It also shipped `items.sort()` (mutates in place) as an
+  "Optimization Rule", recommended **Jest** in a **Vitest** repo, and — found by
+  reading the rest, which nobody had — `useMemo(() => { }, [])` (returns
+  undefined), `{count && <Badge/>}` (renders `0`), `error.status` on a thrown
+  error rather than `response.ok`, a flat "4.5:1" contrast rule weaker than
+  `designsystem.md` §2.4, webpack-bundle-analyzer for a Vite stack, and
+  CSS-Modules-ranked-first beside a `Button.styles.ts` tree that is CSS-in-JS.
+  **Rewritten**: framework-neutral core plus React/Vue/Svelte adapters, with
+  every rule tagged `[MUST]` / `[SHOULD]` / `[MAY]` — `React.memo` and
+  `useCallback` demoted to `[MAY]`, since applied reflexively they cost more than
+  they save.
+- `tokens.css` declared `color-scheme: light dark` once, so forcing a theme left
+  native controls following the OS. Now pinned per theme — and *not* the way the
+  review proposed: a bare `color-scheme: light` on `:root` would invert the bug,
+  giving an OS-dark user dark tokens with light chrome.
+- `--bg-elevated: oklch(1 0 0)` sat two lines under a `/* never pure #fff */`
+  comment. The choice is right (a white card on an off-white ground, and
+  `pure-surface` only inspects `<body>`); it is now *stated*.
+- Replaced the unfalsifiable "Verified: … passes with zero findings" with a dated
+  record naming the fixture, viewport, browser and what it does **not** cover.
+
+**Gate bugs found by building a fixture that consumes the real token file**
+
+- `low-contrast` flagged every correctly-styled **disabled** control. WCAG 1.4.3
+  exempts inactive controls; the collector now skips `disabled`,
+  `aria-disabled` and `fieldset:disabled` subtrees.
+- A `<body>` with no background computes to `rgba(0,0,0,0)` and was reported as
+  "pure #000000" with full confidence. Now read through `effectiveBackground()`.
+- `grey-sprawl` counted *all* text colours, so a status table plus syntax
+  highlighting tripped it. Now counts only near-neutrals, measured as absolute
+  channel spread — relative saturation exaggerates at low lightness and
+  misclassifies ordinary dark surfaces like `rgb(40,42,48)`. Real palettes
+  separate cleanly: neutrals 0–14, semantic hues 82–187.
+
+**Source of truth**
+
+- Renamed the brief `docs/design-system.md` → **`docs/design-brief.md`**. One
+  hyphen from `designsystem.md` was why ten references collapsed into the wrong
+  file and why "§7 of `designsystem.md`" resolved to **Motion** instead of
+  Component Inventory.
+- Namespaced section numbers: product brief `P1`-`P10`, design brief `B1`-`B8`,
+  contracts `C1`-`C12`. A cross-reference can no longer land in the wrong file.
+- `lib/paths.js` gained design-artifact accessors. These resolve under `docs/`,
+  not `.yuva/`, because `enforcement-rules.js` `PROTECTED_DIRS` blocks workers
+  from writing beneath `.yuva/` — so an agent-authored contract cannot live there.
+- Wired up `templates/tokens.css`, which was referenced from **nowhere** while
+  instructing an agent that was never told it existed.
+- `'visual'` was missing from `RUNTIME_ENTRIES`, so `migrate()` would never move
+  a legacy `.yuva/visual/`.
+
+**Honesty and scope**
+
+- Visual QA no longer claims to be "the only gate that can fail because something
+  looks wrong". Its findings are split three ways — automatically testable /
+  human-review only / **not currently enforced** — sourced from
+  `componentcontracts.md` §13 so there is one list.
+- Added a mutation boundary (allowed: gate config and fixtures; forbidden:
+  application code and production design; handoff: source fixes), resolving
+  "never implement the fixes yourself" sitting beside "edit `.yuva/config.json`".
+- Playwright install is now a **blocking prerequisite to report**, not a QA
+  action — it writes the lockfile, downloads ~130MB and fails in CI.
+- Replaced ask-vs-never-stall with an **ask-once** policy: ask, default, mark
+  `PROVISIONAL`, continue, never re-ask. Only P2 (the main job) truly blocks.
+- Split **interaction** states (controls) from **data** states (surfaces). A
+  button has no empty state.
+- Accent contrast is now a **matrix** — as text, as fill, as border, as icon, as
+  focus ring, plus disabled and non-text (1.4.11), in both themes.
+- The gate renders **320px** now, and stopped generating a rubric that asked
+  about 375px while the prompt called 320 the floor.
+
+**New regression guards** (the point: prose is free, code is not)
+
+- `tests/docs-references.test.js` — every path referenced by package docs either
+  ships or is a declared agent output, and every `yuva …` string resolves against
+  the real CLI. Written first, failed on three real bugs, now green. This bug
+  class had recurred four times.
+- `tests/tokens-consistency.test.js` — the two dark palettes must declare the
+  same token set (CSS cannot share one), `color-scheme` tracks the active set,
+  no dangling `var()`, and **every documented contrast ratio is recomputed** —
+  a wrong ratio is worse than none, because it is the number someone cites.
+
+### Tests
+
+522 → 613.
+
+#### Component contracts — the behaviour half of the design system
+
+Review of the first cut landed: it was a taste manifesto, not a design system. It
+said how things should *feel* and nothing about how components should reliably
+*behave* — no component inventory, APIs, variants, interaction or state
+contracts, naming conventions, token governance, testing rules, or
+versioning policy.
+
+**`.yuva/standards/componentcontracts.md`** splits the system in two:
+`designsystem.md` answers *what should this look like* (per project, negotiable);
+component contracts answer *how must this behave* (per component, not
+negotiable). 14 sections:
+
+- **The 12-section contract**, written BEFORE the implementation — it is the
+  spec, not documentation of whatever got built
+- **Three tiers** with dependency rules: primitives, compositions, patterns.
+  Only Tier 2 touches the network, which is what keeps Tier 0/1 testable
+- **Naming conventions** as pick-once rules: no negated booleans, handlers report
+  rather than command, state on `data-` attributes rather than class names
+- **Variant discipline** — closed sets, max three axes, no variant may change
+  semantics
+- **State contracts** — the idle/pending/settled/error machine, and the
+  controlled-vs-uncontrolled-vs-dual decision that must be made once per
+  component rather than drifting into both
+- **Interaction contracts** — timing table, and a destructive-action protocol
+  driven by the product brief's P7, scaling confirmation to consequence
+- **Token governance** — primitive / semantic / component tiers, where a
+  component referencing a primitive token is a defect, plus a deprecation path
+- **Responsive contracts** for the decisions CSS cannot infer (sidebar collapse,
+  column priority, modal sizing), with 320px and 200% zoom required
+- **Accessibility contracts** targeting WCAG 2.2 AA explicitly, including dialog
+  semantics with focus restoration, live-region politeness, table/grid behaviour,
+  accessible charts, and RTL/long-text/forced-colors
+- **Testing rules** — query by role and accessible name, assert on `data-state`
+  never class names, and the list of things not to test
+- **Versioning** — including the two breaking changes people miss: changing a
+  default, and changing an accessible name
+- **A worked `DataTable` contract** as proof the template survives the hard case
+
+### Changed
+
+Calibration pass on `designsystem.md` after the same review — 12 edits
+correcting an anti-generic bias that could force novelty over clarity:
+
+- **New §0.1 precedence**: when a rule conflicts with the product's job, the
+  product wins. Any rule may be overridden for one line in Rejected
+  Alternatives — the enforcement target is recorded-vs-unrecorded, not the rule
+- **New §1.0 product brief, before the visual brief**: primary user, the main
+  job, critical workflow, core objects, what reads in 3 seconds, data volume,
+  dangerous actions, failure consequences, permissions, perf constraints.
+  Avoiding three visual revisions by causing three functional ones is not a win
+- 60-30-10 demoted from fake measurement to heuristic, with three checkable
+  rules in its place
+- OKLCH gained gamut guidance, `@supports` fallbacks, a browser floor,
+  interpolation space, and forced-colors — plus the admission that Yuva's own
+  `oklchToRgb()` clips per channel, which shifts hue: clamping is not gamut
+  mapping
+- "Two fonts maximum" → "deliberate, not accidental", with a loading/licensing/
+  non-Latin cost table that explicitly blesses a system stack under tight perf
+- Spacing allows off-scale values for optical alignment, with a comment
+- Borders-vs-shadows is now per elevation level, not a global commitment
+- Reduced motion gained an 8-pattern table and §7.5 on FLIP/View Transitions —
+  flattening durations is the floor, not a considered experience
+- Empty states no longer demand a primary action (filtered-to-zero, read-only,
+  permission-denied, finished queue)
+- "Every `yes` is a defect" → "every `yes` needs a reason"; the checklist
+  detects accidents, not crimes
+- Signature detail is now "if the product earns it", with *"none — the clarity is
+  the signature"* valid and often right for tools
+
+### Fixed
+
+- **`designsystem.md` referenced `yuva gate run --only visual`, which does not
+  exist** (`Unknown gate: run`). Now `yuva gate visual`. A check that resolves
+  every command string in the design docs against the real CLI is how this was
+  caught.
+- **`frontendstandards.md` was referenced twice but shipped only outside the
+  package.** Now in `template/.yuva/standards/`.
+- **`yuva gate visual` in an unconfigured project said `Unknown gate: visual`**
+  instead of explaining that the gate is opt-in. It now prints the config block
+  and the Playwright install line.
+
+### Known gaps
+
+Stated rather than implied, since a standard that claims unavailable enforcement
+is worse than one that admits the gap (`componentcontracts.md` §13):
+
+- colour literals outside `tokens.css`, components reaching for primitive
+  tokens, and off-scale spacing values are **review items, not lints**
+- no axe-core integration and no accessible-name check in the gate
+- screenshots have **no baseline diffing**, so they are review material rather
+  than regression tests
+- the gate's default viewports do not include **320px or 200% zoom**, which the
+  standards now require
+- `no-reduced-motion` only checks that a media query exists — it would pass the
+  naive duration-flattening that §7.4 now calls insufficient
+
+### Changed (gate internals)
+
+- `GATE_ORDER` is now `lint, typecheck, test, build, visual`.
+- `runGates()` stays **synchronous**. The visual gate is inherently async, so it
+  runs through `execFileSync` on `lib/visual-runner.js` rather than forcing an
+  async signature on hooks, swarm workers and `task done`.
+
+### Tests (first pass)
+
+504 → 522 (+18 visual-gate integration, including the opt-in upgrade-safety
+guarantee; +69 design-audit, including the OKLCH ground-truth cases).
+
 ## [2.4.0] - 2026-09-19
 
 First release since 2.1.0. Versions 2.2.0 and 2.3.0 were tagged but never

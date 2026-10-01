@@ -21,8 +21,8 @@ STEP 1 — READ CONTEXT
 ========================================
 1) Read and understand:
 
-   - `/docs/planning.md`
-   - `/docs/execution.md` (if exists)
+   - `docs/planning.md`
+   - `docs/execution.md` (if exists)
    - All files inside `/session`:
         - state.md
         - log.md
