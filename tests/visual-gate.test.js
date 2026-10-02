@@ -80,6 +80,27 @@ describe('resolveConfig()', () => {
     expect(cfg.viewports).toEqual(DEFAULT_VIEWPORTS);
   });
 
+  it('carries the axe opt-out through, so `axe: false` actually disables it', () => {
+    // This was omitted from the resolved config, which made the opt-out a silent
+    // no-op — axe ran regardless, and then deduped away the built-in
+    // accessible-name rule.
+    write('.yuva/config.json', { visual: { axe: false } });
+    expect(resolveConfig(dir).axe).toBe(false);
+
+    write('.yuva/config.json', { visual: {} });
+    expect(resolveConfig(dir).axe).toBe(true);
+
+    write('.yuva/config.json', { visual: { axeTags: ['wcag2aa'] } });
+    expect(resolveConfig(dir).axeTags).toEqual(['wcag2aa']);
+  });
+
+  it('defaults text zoom to 200% and allows switching it off', () => {
+    write('.yuva/config.json', { visual: {} });
+    expect(resolveConfig(dir).zoomLevels).toEqual([200]);
+    write('.yuva/config.json', { visual: { zoomLevels: [] } });
+    expect(resolveConfig(dir).zoomLevels).toEqual([]);
+  });
+
   it('reads the legacy .aiautomations layout too', () => {
     write('.aiautomations/config.json', { visual: { url: 'http://localhost:4321' } });
     expect(resolveConfig(dir).url).toBe('http://localhost:4321');

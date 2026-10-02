@@ -303,6 +303,29 @@ describe('evaluate() — contrast', () => {
     expect(findings.filter(f => f.rule === 'low-contrast')).toHaveLength(1);
   });
 
+  it('catches a near-miss that an over-generous tolerance used to excuse', () => {
+    // 4.47:1 against a 4.5 requirement is a real AA failure. A 0.05 tolerance
+    // passed it; axe-core caught it and this rule did not.
+    const findings = evaluate({
+      textPairs: [{
+        color: 'oklch(0.56 0.010 265)',
+        background: 'oklch(0.985 0.003 265)',
+        fontSize: '12px',
+        fontWeight: '400',
+      }],
+    });
+    expect(rulesOf(findings)).toContain('low-contrast');
+    expect(findings[0].message).toContain('4.47');
+  });
+
+  it('still tolerates float noise at exactly the threshold', () => {
+    const findings = evaluate({
+      textPairs: [{ color: '#767676', background: '#ffffff', fontSize: '16px', fontWeight: '400' }],
+    });
+    // #767676 on white is 4.54:1 — comfortably passing, must not flap.
+    expect(rulesOf(findings)).not.toContain('low-contrast');
+  });
+
   it('allows large text at 3:1', () => {
     const findings = evaluate({
       textPairs: [{ color: '#767676', background: '#ffffff', fontSize: '32px', fontWeight: '400' }],
@@ -503,6 +526,15 @@ describe('collectObservations()', () => {
     // canonicalises to pure black and produced a false "pure #000000" finding.
     const source = collectObservations.toString();
     expect(source).toMatch(/bodyBackground: effectiveBackground\(document\.body\)/);
+  });
+
+  it('blurs unconditionally, so no focus ring leaks into the screenshot', () => {
+    // <body> has a .focus() method but is not focusable, so restoring to it is a
+    // silent no-op — focus stayed on the last probed control and the ring was
+    // captured into the baseline. Found by running the gate end to end.
+    const source = collectObservations.toString();
+    expect(source).toMatch(/document\.activeElement\.blur\(\)/);
+    expect(source).toMatch(/previouslyFocused !== document\.body/);
   });
 
   it('measures focus indicators by focusing elements, not by parsing CSS', () => {

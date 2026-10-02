@@ -1,0 +1,134 @@
+{
+  "$comment": [
+    "Copy to docs/design-contract.json and fill in. Written by the Design agent;",
+    "consumed by the Planner, Execution, Visual QA and `yuva gate` (the",
+    "design-contract plugin gate). This is the half of the design system that must",
+    "not be re-interpreted: paths, token names, the inventory, the a11y target.",
+    "",
+    "It lives in docs/ and not under .yuva/ because enforcement-rules PROTECTED_DIRS",
+    "blocks workers from writing beneath .yuva/, so an agent cannot author it there.",
+    "",
+    "Rules: .yuva/standards/componentcontracts.md (behaviour)",
+    "       .yuva/standards/designsystem.md (taste)"
+  ],
+
+  "version": 1,
+
+  "paths": {
+    "$comment": "REQUIRED. Nothing hardcodes these — the gate, the lints and every agent read them from here. A Vite app uses src/styles/, Next uses app/ or styles/.",
+    "tokens": "src/styles/tokens.css",
+    "productBrief": "docs/product-brief.md",
+    "designBrief": "docs/design-brief.md",
+    "contracts": "docs/components"
+  },
+
+  "$comment_uiSource": "REQUIRED. Application-owned UI source ONLY. This is what makes the colour-literal lint precise instead of a false-positive machine.",
+  "uiSource": [
+    "src/**/*.{ts,tsx,js,jsx,vue,svelte}",
+    "src/**/*.{css,scss}"
+  ],
+
+  "$comment_exclude": "On top of the always-excluded set (tests, stories, snapshots, vendor, dist, generated, minified). Add project-specific escapes here.",
+  "exclude": [
+    "src/**/*.svg",
+    "src/mocks/**",
+    "src/**/chart-theme.*"
+  ],
+
+  "profile": "operations",
+  "$comment_profile": "operations | marketing | consumer. Switches which layout archetypes and signature-detail expectations apply, so an ops console is not pushed toward a marketing language.",
+
+  "a11y": {
+    "target": "WCAG 2.2 AA",
+    "$comment_exceptions": "Each exception needs a reason and a mitigation, per componentcontracts C8. An undocumented gap is a defect; a documented one is a decision.",
+    "exceptions": []
+  },
+
+  "tokens": {
+    "$comment": "Component source may reference SEMANTIC tokens only. A primitive reference hard-codes a ramp position and defeats the token system (componentcontracts section 7.1).",
+
+    "primitive": [
+      "--n-50", "--n-100", "--n-200", "--n-300", "--n-400", "--n-500",
+      "--n-600", "--n-700", "--n-800", "--n-900", "--n-950"
+    ],
+
+    "semantic": [
+      "--bg", "--bg-subtle", "--bg-elevated", "--bg-hover", "--bg-pressed",
+      "--bg-selected", "--bg-disabled",
+      "--border", "--border-strong", "--border-disabled",
+      "--text", "--text-muted", "--text-subtle", "--text-disabled", "--text-on-accent",
+      "--accent", "--accent-hover", "--accent-subtle", "--accent-fg",
+      "--success", "--warning", "--danger", "--info",
+      "--focus", "--focus-ring", "--focus-ring-on-accent",
+      "--overlay", "--scrim",
+      "--link", "--link-visited",
+      "--selection-bg", "--selection-fg",
+      "--chart-1", "--chart-2", "--chart-3", "--chart-4",
+      "--chart-5", "--chart-6", "--chart-7", "--chart-8",
+      "--chart-grid", "--chart-axis",
+      "--syntax-keyword", "--syntax-string", "--syntax-number", "--syntax-comment",
+      "--syntax-function", "--syntax-variable", "--syntax-operator",
+      "--syntax-added", "--syntax-removed",
+      "--text-xs", "--text-sm", "--text-base", "--text-lg",
+      "--text-xl", "--text-2xl", "--text-3xl", "--text-4xl",
+      "--font-display", "--font-body", "--font-mono",
+      "--weight-normal", "--weight-medium", "--weight-semibold", "--weight-bold",
+      "--leading-tight", "--leading-snug", "--leading-normal",
+      "--tracking-tight", "--tracking-normal", "--tracking-caps", "--measure",
+      "--space-px", "--space-1", "--space-2", "--space-3", "--space-4",
+      "--space-6", "--space-8", "--space-12", "--space-16", "--space-24",
+      "--radius-sm", "--radius-md", "--radius-lg", "--radius-xl", "--radius-full",
+      "--shadow-sm", "--shadow-md", "--shadow-lg",
+      "--ease-out", "--ease-in-out", "--ease-spring",
+      "--dur-fast", "--dur-base", "--dur-slow",
+      "--container", "--container-narrow", "--gutter",
+      "--z-dropdown", "--z-sticky", "--z-overlay", "--z-modal", "--z-toast"
+    ],
+
+    "scales": {
+      "$comment": "Literal values the off-scale lint checks against. 0 and 1px are always allowed (hairlines).",
+      "spacing": [
+        "0.25rem", "0.5rem", "0.75rem", "1rem",
+        "1.5rem", "2rem", "3rem", "4rem", "6rem"
+      ],
+      "fontSize": [
+        "0.75rem", "0.875rem", "1rem", "1.125rem",
+        "1.5rem", "1.953rem", "2.441rem", "3.815rem"
+      ],
+      "radius": ["0.375rem", "0.5rem", "0.75rem", "1rem", "9999px"]
+    }
+  },
+
+  "components": [
+    {
+      "$comment": "Tier 0 primitive | 1 composition | 2 pattern. Only Tier 2 may fetch. Every entry needs a contract file before it is implemented.",
+      "name": "Button",
+      "tier": 0,
+      "variants": ["solid", "outline", "ghost"],
+      "sizes": ["sm", "md"],
+      "states": ["idle", "pending", "disabled"],
+      "contract": "docs/components/Button.md"
+    },
+    {
+      "name": "DataTable",
+      "tier": 1,
+      "variants": [],
+      "sizes": ["compact", "comfortable"],
+      "states": ["loading", "empty", "error", "partial", "populated"],
+      "dataSurface": true,
+      "contract": "docs/components/DataTable.md"
+    }
+  ],
+
+  "$comment_provisional": "Decisions taken as defaults because a question went unanswered (designagent ask-once policy). Each entry says what was assumed and what changes if the real answer differs. An empty list means every decision was made on real input.",
+  "provisional": [],
+
+  "acceptance": {
+    "$comment": "What 'done' means for UI work in this project. Checked by Visual QA.",
+    "visualGateBlockingFindings": 0,
+    "viewports": [320, 375, 768, 1440],
+    "zoomLevels": [100, 200],
+    "contractCoverage": "every component in `components` has all twelve sections",
+    "keyboardOnly": "the critical workflow (product brief P3) is completable with no mouse"
+  }
+}

@@ -737,17 +737,41 @@ Honest accounting, so this file does not claim authority it lacks:
 | Heading order, image alt | `visual` gate | automated |
 | Horizontal overflow | `visual` gate, per viewport | automated |
 | Banned generic accent | `visual` gate | automated |
-| Colour literal outside `tokens.css` | — | **review only** |
-| Component using a primitive token | — | **review only** |
-| Off-scale spacing value | — | **review only** |
-| axe violations, accessible names | — | **review only** |
-| Contract exists for each component | — | **review only** |
-| Visual regression baselines | — | **not implemented** |
-| 320px and 200% zoom viewports | — | **not in gate defaults** |
+| Colour literal outside the token file | `design-contract` gate | automated |
+| Component using a primitive token | `design-contract` gate | automated |
+| Off-scale spacing value | `design-contract` gate | automated (advisory) |
+| Token not declared in the contract | `design-contract` gate | automated (advisory) |
+| Tier 0/1 component that fetches | `design-contract` gate | automated |
+| Contract exists for each component | `design-contract` gate | automated |
+| 320px viewport | `visual` gate | automated |
+| Accessible names on interactive controls | `visual` gate | automated |
+| axe-core conformance (ARIA, landmarks, name-role-value) | `visual` gate | automated **when axe-core is installed** |
+| 200% text zoom: overflow and clipping | `visual` gate | automated |
+| Visual regression baselines | `visual` gate | automated **when `baseline` is configured** |
+| Keyboard operability end to end | — | **review only** |
+| Focus restoration after a dialog closes | — | **review only** |
+| Whether the reflowed 200%-zoom layout is still *usable* | — | **review only** |
 
-Everything marked "review only" is source-lintable and belongs in the gate.
-Until it is there, these are review items — and contract §12 is where you point
-instead of re-arguing.
+Three rows are conditional, and the gate says so rather than implying coverage:
+`design-contract` rows need `docs/design-contract.json`; axe rows need
+`npm install -D axe-core` (the report prints **axe-core: NOT RUN** otherwise);
+baseline rows need a `baseline` block, and the *first* run writes the baseline
+rather than verifying anything.
+
+Without `docs/design-contract.json` the gate is **silent**, not passing — a project that has not adopted the
+contract is unenforced, and Visual QA reports that as a finding rather than a
+clean bill.
+
+Why those rows could not be automated before: a colour-literal lint with no
+declared scope false-positives on tests, SVG, documentation examples, chart
+configuration, generated files and vendor code — which is worse than no lint,
+because people learn to ignore it. The contract supplies the missing scope
+(`uiSource`, `exclude`) and the missing vocabulary (`tokens.semantic`,
+`tokens.primitive`, `tokens.scales`), and the same rule becomes precise.
+
+Everything still marked "review only" or "not implemented" is a real gap. Say so
+rather than implying coverage, and use contract §12 to point at instead of
+re-arguing.
 
 ---
 

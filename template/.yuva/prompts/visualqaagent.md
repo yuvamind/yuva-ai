@@ -48,12 +48,37 @@ STEP 1 - RUN THE GATE
 ========================================
 
 ```bash
-yuva gate visual
+yuva gate visual   # render the UI and audit what painted
+yuva gates         # check the design contract against the source
 ```
 
-This boots the dev server, renders every configured route at every configured
+The first boots the dev server, renders every configured route at every configured
 viewport, screenshots each, and runs the automated design audit. Output lands in
 `.yuva/run/visual/<timestamp>/` with a `report.md`.
+
+### Is the render even reproducible?
+
+Check this before trusting anything the gate reports. A screenshot of an empty
+shell passes every rule in the audit.
+
+- [ ] Does `visual.fixtures` exist? Without `seedCommand` the page renders
+      whatever is in the database; without `storageState` an authenticated app
+      renders its login screen and the gate happily audits that.
+- [ ] Is `freezeTime` set, if anything on screen shows a date, a relative time or
+      a countdown? Those differ every run.
+- [ ] Is `waitFor` set? Otherwise the capture can land on a skeleton.
+- [ ] Are `mask` selectors set for avatars, timestamps and anything random?
+- [ ] Does `visual.baseline` exist? Without it, screenshots are review material,
+      **not** a regression test.
+
+The gate reports **FIXTURE WARNINGS** when something it was asked to do did not
+work (a missing mock file, `freezeTime` on a Playwright older than 1.45, a
+`waitFor` selector that never appeared). Treat each as "this run may not be
+comparable", not as a detail.
+
+**A `baseline: created` result verified nothing.** It recorded what the page looks
+like now. Open those screenshots before the next run trusts them, because
+whatever is wrong in them has just become the expected result.
 
 If the gate says it is not configured, it prints the exact block to add to
 `.yuva/config.json`. Adding it is allowed - that is gate config, not application
@@ -112,12 +137,26 @@ choice, whether the signature detail is useful, the swap test, end-to-end
 keyboard operability, focus restoration, dialog semantics, and whether the five
 data states look as considered as the happy path.
 
+**2b. Automated only when the project opted in**
+
+- `axe-core` conformance — needs `npm install -D axe-core`. The report header
+  says `axe-core: ran` or `**NOT RUN** — conformance rules unverified`. If it did
+  not run, accessibility is **unverified**, not clean.
+- Visual regression — needs a `baseline` block. A `baseline: created` result
+  verified nothing; it recorded the current state as expected.
+- Contract lints — need `docs/design-contract.json`.
+
 **3. Not currently enforced - report as RISK, never as a pass**
 
-Colour literals outside the token file, components reaching for primitive tokens,
-off-scale spacing and type, axe violations, missing accessible names,
-visual-regression baselines, and 200% zoom. The greps in step 5 partially cover
-the first two. Everything else is unverified, so never report it as clean.
+End-to-end keyboard operability, focus restoration after a dialog closes, and
+whether the reflowed 200%-zoom layout is still *usable* (overflow and clipping at
+200% ARE checked; legibility is not). All unverified, so never report any of them
+as clean.
+
+Colour literals, primitive-token use, off-scale spacing, undeclared tokens, the
+Tier 0/1 no-fetch rule and missing component contracts **moved up to category 1**
+- the `design-contract` gate checks them now. They are unenforced only on a
+project with no `docs/design-contract.json`.
 
 Blocking findings are fixed in code. **Never fix a blocking finding by editing
 the gate config or relaxing a threshold** — that is the one failure mode that
@@ -196,20 +235,23 @@ Open `docs/design-brief.md` and verify the implementation honours it:
 - Is the accent the one the brief specifies, or did Execution drift?
 - Are font sizes all from the documented scale?
 - Is spacing all from the documented scale?
-- Do components reference primitive tokens (`--n-500`) instead of semantic ones
-  (`--text-muted`)? That hard-codes a ramp position and defeats the token
-  system (componentcontracts.md §7.1):
+
+Colour literals, primitive-token use, off-scale spacing, undeclared tokens and
+missing component contracts are **checked, not grepped**:
 
 ```bash
-grep -rnE "var\(--(n|space|text)-[0-9]+" src --include="*.tsx" --include="*.css" \
-  | grep -v tokens.css
+yuva gates
 ```
 
-- Are there colour literals outside `tokens.css`? Grep for them:
+The `design-contract` gate reads `docs/design-contract.json` for the declared
+`uiSource` globs, the token names and the component inventory. That is what makes
+it precise. The version of this step that shipped before used
+`grep -rnE ... src --include="*.tsx"`, which hardcoded `src` as the root and
+looked at two extensions - so a Next `app/` directory, a SvelteKit project or a
+monorepo package matched nothing and this step reported clean.
 
-```bash
-grep -rnE "#[0-9a-fA-F]{3,8}|rgba?\(" src --include="*.tsx" --include="*.css" \
-  | grep -v tokens.css
+If there is no `docs/design-contract.json`, the gate is silent. That is itself a
+finding: report it as **not enforced**, never as a pass.
 ```
 
 Drift from the brief is a real defect even when it looks fine in isolation,

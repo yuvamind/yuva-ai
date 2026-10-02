@@ -48,11 +48,60 @@ The rules most often misapplied this way, and what they do NOT mean:
 | §7 custom easing curves | motion must be noticeable |
 | §12 a signature detail | invent a flourish where none belongs |
 
+Section 0.2 makes this concrete: declare a **profile** and whole groups of these
+rules switch off.
+
 **Override protocol.** Any rule here may be overridden when the product requires
 it. The cost of an override is one line in the "Rejected Alternatives" section
 of `docs/design-brief.md` saying what you chose and why. An override that is
 recorded is a design decision; an unrecorded one is drift — and that
 distinction, not the rule itself, is what this standard actually enforces.
+
+### 0.2 Profile — which half of this document applies
+
+Declare a **profile** in `docs/design-contract.json`. It decides which rules here
+are active, because an operations console and a marketing page want opposite
+things and a single default serves neither.
+
+| | `operations` | `marketing` | `consumer` |
+|---|---|---|---|
+| Optimise for | scanning and throughput | persuasion and recall | delight and clarity |
+| §5.1 layout archetypes | **predictable and repeated.** Stable column positions beat variety — a row that moves between screens costs the user their place | asymmetry, bento, full-bleed bands, overlap | moderate variety, generous spacing |
+| §4 density | compact; 32-36px rows; 13-14px body | spacious; `space-24` sections | comfortable |
+| §3 type scale | ratio **1.2**, few sizes | 1.333, wide range | 1.25 |
+| §7 motion | **minimal.** Hover and focus only, 100-150ms. Nothing that delays a keystroke | expressive, scroll-linked, spring | moderate |
+| §12 signature detail | a *behaviour* — ownership visible at a glance, a diff that highlights the one line that matters. Often "none" | a visual moment | one memorable interaction |
+| Primary input | **keyboard** | pointer and touch | touch |
+| Hardest constraint | information density without noise | load time | first-run comprehension |
+
+**For `operations`, these rules in this document are explicitly relaxed:**
+
+- §5.1 "break the centered-column reflex" does not apply. Predictability is the
+  feature. A settings page that looks like every other settings page is doing its
+  job.
+- §12 does not require a signature detail. "None — the clarity is the signature"
+  is the expected answer, not a cop-out.
+- §11's swap test is **not** a defect check here (see below).
+
+### 0.3 The swap test is a signal, not a gate
+
+§11 ends with *"could this be swapped into another product unnoticed?"* That
+detects **missing product identity**. It does not detect a defect, and it is not
+automatically a failure.
+
+Familiarity is frequently the correct choice. A login form, a settings page, a
+date picker or a data table that behaves exactly as users already expect is
+better than a novel one, because the user spends no attention learning it. The
+honest reading is:
+
+- **Marketing or consumer surface, and it swaps cleanly** → a real problem. The
+  product has no identity where identity is the point.
+- **Operational surface, and it swaps cleanly** → usually fine, and worth one
+  line in the brief saying the familiarity is deliberate.
+- **Anything that swaps cleanly AND the team cannot say what makes it theirs** →
+  a problem regardless of profile.
+
+Use it to start that conversation, never to reject a screen on its own.
 
 ---
 

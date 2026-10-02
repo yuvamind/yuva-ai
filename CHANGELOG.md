@@ -174,9 +174,265 @@ outline, so it shipped examples the project's own gate flags.
   no dangling `var()`, and **every documented contrast ratio is recomputed** —
   a wrong ratio is worse than none, because it is the number someone cites.
 
-### Tests
+### Tests (pass 2)
 
 522 → 613.
+
+#### Closing the three stated gaps — and what running it found
+
+The previous passes left three gaps recorded honestly in
+`componentcontracts.md` §13: no axe-core, no 200% zoom, and — the real one —
+`captureAndAudit()` had **never executed**. Every other part of the gate was
+tested against injected observations; the Playwright half had only ever been
+reasoned about.
+
+Playwright and axe-core are now **devDependencies**. Runtime `dependencies` are
+unchanged (`execa`, `glob`, `picocolors`), so consumers get nothing extra; both
+remain optional peers resolved from the project being audited.
+
+**Running the gate for the first time found four bugs no unit test could have.**
+
+1. **A focus ring was baked into every screenshot — and every baseline.** The
+   audit focuses each control to test for focus indicators, then restores. But
+   `previouslyFocused` is `<body>`, which *has* a `.focus()` method and is not
+   focusable, so the restore was a silent no-op and focus stayed on the last
+   control probed. The `else` blur branch never ran. Worse, this was *introduced*
+   by the earlier reorder that put the audit before the screenshot; before that,
+   the screenshot came first and the bug could not appear. Now blurs
+   unconditionally, then restores only a genuinely focusable previous element.
+
+2. **`page.clock.pauseAt()` deadlocked `axe.run()`.** Pausing the clock stops
+   every timer in the page, and anything waiting on one never resolves — axe hung
+   until the gate's 12-minute budget. Two fixtures, each correct alone, that
+   deadlock together. Fixed by using `setFixedTime` instead: a deterministic
+   *displayed* clock without stopping the world, which is what the fixture was
+   for. `axe.run()` is additionally bounded at 60s, because a third-party rule
+   set running inside someone else's page deserves a timeout regardless.
+
+3. **A contrast tolerance was excusing real failures.** `ratio + 0.05 < needed`
+   silently passed 4.47:1 against a 4.5 requirement. axe flagged it as *serious*
+   and the hand-written rule did not. Contrast is deterministic to ~1e-9, so a
+   0.05 slack was not absorbing float noise — it was about 10,000,000x larger
+   than the noise it claimed to absorb. Now `needed - 0.005`.
+
+4. **`"axe": false` was a silent no-op.** `resolveConfig()` never copied `axe`
+   into the resolved config, so the opt-out read as `undefined`, axe ran anyway,
+   and its presence then deduped away the built-in accessible-name rule. Found
+   only because an end-to-end test asserted on a finding that quietly vanished.
+
+**New checks**
+
+- **Accessible names** on interactive controls — computed the way a browser
+  would (aria-label, aria-labelledby, associated `<label>`, text content, image
+  alt, submit `value`, title). No dependency. Suppressed when axe is present,
+  since `axe/button-name` covers the same ground more thoroughly; reporting both
+  double-counts one defect, which is the noise that teaches people to skim.
+- **200% text zoom**, scaling the root font size rather than using browser or CSS
+  zoom. That asymmetry is the point: rem/em text grows while `px` does not, which
+  is exactly the WCAG 1.4.4 failure worth catching. Real zoom scales px too and
+  would hide it. Verified against a 120x28px box whose rem text overflows.
+- **axe-core**, optional and namespaced `axe/<rule>`. `critical`/`serious` block,
+  `moderate`/`minor` advise — a gate that fails on every minor finding gets
+  switched off, and a switched-off gate checks nothing. When absent the report
+  prints **axe-core: NOT RUN — conformance rules unverified** rather than
+  reading as clean.
+
+**`tests/visual-gate-e2e.test.js`** exercises the real thing: real server, real
+browser, real screenshots, real baseline comparison, real regression detection.
+It self-skips when Playwright or its browser is missing, so a contributor without
+a 130MB download still gets a green suite — and prints a warning when it skips,
+so a green run never silently means "skipped everything that matters".
+
+### Tests
+
+695 → 725.
+
+#### Deterministic visual fixtures and baselines (Phase D)
+
+The gate rendered whatever the app happened to show, so a screenshot of an empty
+shell passed every rule in the audit. `lib/visual-fixtures.js` adds the missing
+determinism: a seed command run before the server, Playwright `storageState` for
+auth, route-level network stubs, a frozen clock, animation freezing, an explicit
+ready selector, and masked regions for avatars and timestamps.
+
+**Baseline diffing runs inside the Chromium the gate already launched**, via
+canvas. `toHaveScreenshot` lives in `@playwright/test` — a second test runner, in
+a repo whose own standard now says *use the existing one* — and pixelmatch/pngjs
+would add dependencies to a package that deliberately keeps Playwright an
+optional peer. The browser already decodes PNG and walks pixels, so it does.
+Verified against known inputs in real Chromium: a 10x10 red square on a 100x100
+white ground counts as **exactly 100** differing pixels, ratio exactly `0.01`; a
+5-per-channel delta is ignored at tolerance 12 and caught at tolerance 2; a
+height change reports `sizeMismatch` with both sizes.
+
+Two details that are load-bearing:
+
+- **The audit now runs BEFORE freezing, and that ordering is a correctness
+  requirement.** The audit reads `transitionDuration` and `transitionProperty`
+  from computed style; freezing sets both to `0s`, which would have silently
+  disabled the `transition-all` rule and made every page look compliant.
+- **`animation-play-state: paused`, not just zeroed durations.** A zero-duration
+  infinite animation still advances, so a spinner would freeze on an arbitrary
+  frame and the diff would flake every run.
+
+A first run reports `baseline: created` and says plainly that it **verified
+nothing** — it recorded what the page looks like now, so whatever is wrong in it
+has just become the expected result. Fixture failures surface as **FIXTURE
+WARNINGS** rather than being swallowed, because a baseline comparison is only as
+trustworthy as the determinism underneath it.
+
+#### The full agent lifecycle (Phase E)
+
+Existing Code, Tester, Security, Reviewer and State Manager had no place in the
+frontend chain, and there was no way back when the *design* was wrong rather than
+the implementation — which made the first brief into frozen authority.
+
+```
+EXISTING CODE -> Requirements -> Risk -> DESIGN -> Planner -> Execution
+             -> Tester -> Security -> Reviewer -> VISUAL QA -> ship
+```
+
+Existing Code runs first and writes `docs/architecture-constraints.md`, because
+Design cannot choose a token system without knowing the framework, CSS strategy,
+SSR model, existing component library, browser floor and perf budget.
+Tester/Security/Reviewer run before Visual QA, which drives the real app by
+keyboard and wants one that already compiles.
+
+Two distinct return paths: an **implementation** defect goes Visual QA →
+Execution → Visual QA; a **foundation** defect goes Visual QA → Design → Planner
+→ Execution → Visual QA. It is a foundation defect when the decision is wrong
+rather than the code — the accent fails contrast on its own background, density
+contradicts product brief P6, a contract needs behaviour the framework cannot
+express, the signature detail fights accessibility. **If a finding survives two
+round-trips, escalate** with both positions stated; two agents disagreeing about
+taste do not converge by repetition.
+
+**Session CLI, two latent bugs fixed:** `session save` printed "Checkpoint
+saved." even with no active session (`save()` now returns a boolean and the CLI
+honours it), and `session decision` silently truncated unquoted multi-word input
+— `session decision use postgres faster writes` recorded `what="use"`,
+`why="postgres"` and dropped the rest. It now refuses and suggests the quoted
+form. The `--type` vocabulary is documented (`note` `code` `plan` `design` `qa`
+`risk` `security` `review` `todo` `issue`), including that
+`log --type decision` does *not* record a decision — only `session decision`
+does.
+
+#### Design profiles (Phase F)
+
+The standard foregrounded asymmetry, bento grids, signature details and custom
+motion — a marketing language, pushed onto operations consoles. New §0.2 declares
+a **profile** (`operations` / `marketing` / `consumer`) in the contract, and whole
+groups of rules switch with it. For `operations`: layouts are **predictable and
+repeated** (a row that moves between screens costs the user their place), density
+is compact, motion is hover-and-focus only, input is keyboard-first, and §12 does
+**not** require a signature detail — "none, the clarity is the signature" is the
+expected answer.
+
+New §0.3 reframes the swap test as a **signal, not a gate**. Familiarity is
+frequently correct: a login form, settings page or data table that behaves exactly
+as users expect is better than a novel one, because the user spends no attention
+learning it. The real failure is nobody on the team being able to say what makes
+the product theirs.
+
+### Fixed
+
+- `showGateHelp()` never actually gained the visual-gate documentation added two
+  passes ago: that edit used a non-asserted `replace()` and silently did nothing.
+  Same bug class as the broken doc references — a silent no-op. Every edit script
+  since asserts its anchors, which is why this was the last one. The help now
+  documents the fixtures and baseline config too.
+
+### Tests
+
+662 → 695 (+33 visual-fixtures, mostly `baselineDecision` policy: first run,
+explicit update, sub-threshold noise, exactly-at-threshold, size change,
+comparison unavailable, zero threshold).
+
+#### Design contract — the machine-readable handoff (Phase C)
+
+Both reviews converged on one sentence: *stop treating Markdown prompts as the
+entire design-system contract.* Markdown keeps judgement and workflow;
+`docs/design-contract.json` carries what an agent must not re-interpret — the
+token file's real path, which globs are application-owned UI source, the token
+names by tier, the component inventory with tiers and states, the a11y target,
+and what "done" means.
+
+**`lib/design-contract.js`** — loader, validator and source-lint engine, shaped
+like `design-audit.js` (`load` / `validate` / `lint` / `evaluate` / `summarize` /
+`formatFindings`) so the rules are unit-testable without a fixture per rule.
+
+**Registered as `BUILTIN_RULES['design-contract']`** in `lib/plugin-gates.js`
+rather than as a native gate. `design-audit` needed native wiring only because it
+drives a browser and `runGates()` is synchronous; a contract check reads files
+synchronously, so the plugin path gives automatic inclusion in `runAllGates()`,
+automatic reporting in `yuva gate` and `yuva gates`, and free enable/disable via
+`.yuva/config.json → pluginGates`. Zero new wiring.
+
+**It is silent, not passing, on a project with no contract.** Built-in plugin
+rules default to *enabled*, so without this every existing project would get a
+wall of advice on upgrade.
+
+**The loader is deliberately not `fs-utils.readJSON`**, which returns `null` for a
+missing file and a syntax error indistinguishably. For an authored, committed
+artifact those are opposite situations: absent means "not adopted" and must be
+silent; malformed or a version mismatch means "someone broke it" and must be
+loud. (The repo's only other versioned artifact, `neural-graph.js`, does
+`version !== 1 → return false` — right for a rebuildable cache, wrong here.)
+
+**What it now enforces**, moving six rows of `componentcontracts.md` §13 out of
+"review only": colour literals outside the token file, components reaching for
+primitive tokens, off-scale spacing, tokens the contract never declared, the
+Tier 0/1 no-fetch rule, and components declared without a contract file.
+
+Why these could not be automated before: a colour-literal lint with no declared
+scope false-positives on tests, SVG, documentation examples, chart config,
+generated files and vendor code — worse than no lint, because people learn to
+ignore it. The contract supplies the missing scope (`uiSource`, `exclude`, plus an
+always-excluded set) and the missing vocabulary (`tokens.semantic`,
+`tokens.primitive`, `tokens.scales`). Verified end to end: a fixture with a
+literal in a component **and** the same literal in a sibling `.test.tsx` reports
+the first and ignores the second.
+
+Nuances that keep it honest: off-scale spacing is permitted *with a comment*,
+because `frontendstandards.md` allows one-offs for optical alignment; hairlines
+and `0` are always allowed; a component may own tokens named after itself
+(`--button-*`); and only spacing properties are checked, so `width: 437px` is not
+a finding.
+
+This also fixes the false-negative that shipped in Visual QA: its grep hardcoded
+`src` as the root and looked only at `.tsx`/`.css`, so a Next `app/` directory, a
+SvelteKit project or a monorepo package matched nothing and the step reported
+clean. The gate reads the globs from the contract instead, and the greps are gone.
+
+**`.yuva/templates/design-contract.json`** ships as the starter, with 105 semantic
+tokens matching `tokens.css`, the primitive list, the scales, a worked two-component
+inventory, a `profile` switch (operations / marketing / consumer), a `provisional`
+list for ask-once defaults, and an `acceptance` block.
+
+### Fixed (defects introduced by the previous pass)
+
+Found by re-reading my own output, which is the only reason they were caught:
+
+- The ask-once policy was **inserted beside** the paragraph it was meant to
+  replace, so `designagent.md` said both "use defaults and mark PROVISIONAL" and
+  "never fall back to defaults". A contradiction added while removing
+  contradictions.
+- `designagent.md` still called the Design-before-architecture ordering
+  "deliberate and non-negotiable". It now separates the part that is
+  non-negotiable (design before *implementation*) from the part that was wrong
+  (design before *technical constraints are known*), and requires framework, CSS
+  strategy, SSR model, browser floor and perf budget first — from
+  `docs/architecture-constraints.md`, the Existing Code agent, or recorded as
+  `PROVISIONAL`.
+- Step 3 still said "visual **1**, **2**, **5**" after the `B#` renumbering.
+- The namespacing note was inserted **into the middle** of the standards table in
+  `CLAUDE.md`, orphaning the `frontendstandards.md` row out of the table.
+
+### Tests
+
+613 → 662 (+49 design-contract, most of them false-positive protection: a literal
+in a test file, in the token file, in a comment, on a `var()` line; an off-scale
+value with a justifying comment; a Tier 2 component that is allowed to fetch).
 
 #### Component contracts — the behaviour half of the design system
 
