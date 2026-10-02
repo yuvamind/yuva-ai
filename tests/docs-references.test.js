@@ -57,6 +57,12 @@ const EXTERNAL_OR_GENERATED = new Set([
 const isPlaceholder = (p) => /[<>*]/.test(p) || p.includes('...');
 
 /**
+ * Paths outside the project entirely — a user's home directory, or an absolute
+ * system path. These are real and documented, just not ours to ship.
+ */
+const isExternalPath = (p) => p.startsWith('~/') || p.startsWith('/etc/') || /^[A-Za-z]:[\/]/.test(p);
+
+/**
  * Illustrative filenames inside naming-convention tables and code examples
  * (`DataTable.tsx`, `useAuth.ts`, `API_ENDPOINTS.ts`) are not references to
  * anything. Every doc this repo actually ships has an all-lowercase basename, so
@@ -73,6 +79,7 @@ function isIllustrative(ref) {
  */
 function classify(ref) {
   if (isPlaceholder(ref)) return 'placeholder';
+  if (isExternalPath(ref)) return 'external-path';
   if (isIllustrative(ref)) return 'example';
   if (EXTERNAL_OR_GENERATED.has(ref)) return 'external';
   if (AGENT_OUTPUT_PREFIXES.some(p => ref.startsWith(p))) return 'agent-output';
@@ -110,7 +117,8 @@ function extractFileRefs(text) {
 
 const cliSource = fs.readFileSync(path.join(ROOT, 'bin', 'cli.js'), 'utf8');
 const VALID_COMMANDS = new Set(
-  [...cliSource.matchAll(/^\s*case '([a-z-]+)':/gm)].map(m => m[1]),
+  // Digits allowed: `e2e` is a command, and `[a-z-]+` silently parsed it as `e`.
+  [...cliSource.matchAll(/^\s*case '([a-z0-9-]+)':/gm)].map(m => m[1]),
 );
 
 const { GATE_ORDER } = require('../lib/gate-runner');
@@ -118,7 +126,7 @@ const VALID_GATE_ARGS = new Set([...GATE_ORDER, 'list', 'help']);
 
 const sessionSource = fs.readFileSync(path.join(ROOT, 'lib', 'commands', 'session.js'), 'utf8');
 const VALID_SESSION_SUBS = new Set(
-  [...sessionSource.matchAll(/case '([a-z-]+)':/g)].map(m => m[1]),
+  [...sessionSource.matchAll(/case '([a-z0-9-]+)':/g)].map(m => m[1]),
 );
 
 const agentSource = fs.readFileSync(path.join(ROOT, 'lib', 'commands', 'agent.js'), 'utf8');
@@ -127,13 +135,13 @@ const AGENT_MAP_BLOCK = agentSource.slice(
   agentSource.indexOf('const AGENT_DESCRIPTIONS'),
 );
 const VALID_AGENT_NAMES = new Set(
-  [...AGENT_MAP_BLOCK.matchAll(/'([a-z]+)':/g)].map(m => m[1]),
+  [...AGENT_MAP_BLOCK.matchAll(/'([a-z0-9]+)':/g)].map(m => m[1]),
 );
 
 /** Extract `yuva <command> [sub]` invocations from backticks and code fences. */
 function extractCommands(text) {
   const found = new Set();
-  for (const [, inner] of text.matchAll(/(?:^|[`\s])yuva ([a-z-]+(?: [a-z-]+)?)/gm)) {
+  for (const [, inner] of text.matchAll(/(?:^|[`\s])yuva ([a-z0-9-]+(?: [a-z0-9-]+)?)/gm)) {
     found.add(inner.trim());
   }
   return [...found];

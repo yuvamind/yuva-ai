@@ -10,6 +10,7 @@
 | Execution | `yuva agent show execution` | Implement code step-by-step following the plan |
 | Continuity | `yuva agent show continuity` | Resume work from last session state |
 | Tester | `yuva agent show tester` | Write and run tests, QA |
+| E2E | `yuva agent show e2e` | Agent-driven behaviour tests: keyboard, focus, five states |
 | Visual QA | `yuva agent show visualqa` | Screenshot the UI and audit it visually |
 | Reviewer | `yuva agent show reviewer` | Code quality audits and review |
 | Security | `yuva agent show security` | Security vulnerability analysis |
@@ -30,7 +31,7 @@ implementation get made as framework defaults, which is what generic UI is:
 
 ```
 EXISTING CODE -> Requirements -> Risk -> DESIGN -> Planner -> Execution
-             -> Tester -> Security -> Reviewer -> VISUAL QA -> ship
+             -> Tester -> Security -> Reviewer -> E2E -> VISUAL QA -> ship
 ```
 
 Every agent has a place. The three that are easy to leave out, and why they are in:
@@ -44,6 +45,10 @@ Every agent has a place. The three that are easy to leave out, and why they are 
   drives the real app with a keyboard, so it wants an app that already compiles,
   passes its tests and has no obvious vulnerability. Reviewing appearance on top
   of broken behaviour wastes the expensive pass.
+- **E2E runs before Visual QA.** It proves the app can be *operated* — keyboard
+  only, focus restored after a dialog closes, every data state reachable. Visual
+  QA then judges how it looks. Those three checks are exactly what
+  `componentcontracts.md` section 13 used to leave to a human.
 - **State Manager runs throughout**, not at a position: it keeps
   `.yuva/run/session/` current so any step can be resumed.
 

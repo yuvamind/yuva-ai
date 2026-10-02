@@ -748,11 +748,20 @@ Honest accounting, so this file does not claim authority it lacks:
 | axe-core conformance (ARIA, landmarks, name-role-value) | `visual` gate | automated **when axe-core is installed** |
 | 200% text zoom: overflow and clipping | `visual` gate | automated |
 | Visual regression baselines | `visual` gate | automated **when `baseline` is configured** |
-| Keyboard operability end to end | — | **review only** |
-| Focus restoration after a dialog closes | — | **review only** |
+| Keyboard operability end to end | `yuva e2e` | automated **when the behaviour suite is set up** |
+| Focus restoration after a dialog closes | `yuva e2e` | automated **when the behaviour suite is set up** |
+| The five data states actually reachable | `yuva e2e` | automated **when the behaviour suite is set up** |
+| Double-submit blocked while pending | `yuva e2e` | automated **when the behaviour suite is set up** |
 | Whether the reflowed 200%-zoom layout is still *usable* | — | **review only** |
 
-Three rows are conditional, and the gate says so rather than implying coverage:
+The `yuva e2e` rows need a behaviour suite (`npm install -D e2e`, then
+`yuva e2e init`), and they are deliberately a **separate command** rather than
+part of `yuva gate`: an agent step calls a model the first time and whenever the
+app changes, so a gate that ran them silently would spend money on every build.
+Opt in with `{ "e2e": { "gate": true } }` once that trade is understood. Those
+tests trace to product brief P3/P7/P9 and contracts C5-C8.
+
+Three more rows are conditional, and the gate says so rather than implying coverage:
 `design-contract` rows need `docs/design-contract.json`; axe rows need
 `npm install -D axe-core` (the report prints **axe-core: NOT RUN** otherwise);
 baseline rows need a `baseline` block, and the *first* run writes the baseline

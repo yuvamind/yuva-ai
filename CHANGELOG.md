@@ -178,6 +178,121 @@ outline, so it shipped examples the project's own gate flags.
 
 522 → 613.
 
+#### `e2e` integration — behaviour, where the visual gate stops
+
+Integrates [`e2e`](https://github.com/tester-army/e2e) (Apache-2.0), an
+agent-driven test framework: you state a goal in natural language, an agent
+drives the app to reach it, and you assert with ordinary locators.
+
+**Why this and not just more prompt text.** `componentcontracts.md` section 13
+had three rows stuck in "review only" because no screenshot could settle them —
+keyboard operability, focus restoration after a dialog closes, and whether a data
+surface actually reaches its five states. Those are *behaviour*. The Visual QA
+prompt had been asking a human to drive the keyboard by hand. `e2e` is Playwright
+underneath, same as the `visual` gate, so this adds a tool rather than a stack.
+
+**`yuva e2e`** — `run`, `init`, `list`, `cache`, `status`. Separate from
+`yuva gate` on purpose: an agent step calls a model the first time and whenever
+the app changes (verified steps replay from cache otherwise), and a gate that
+silently spends money on every build is a gate people disable. It becomes a gate
+only with `{ "e2e": { "gate": true } }` — doubly opt-in, since the config block
+alone is not enough.
+
+**Auth: the subscription you already pay for, not an API key.** Yuva drives AI
+*CLIs* — Claude Code, Codex, Gemini, OpenCode, Aider — which are already paid for
+by subscription. Defaulting the behaviour suite to a per-token API key would make
+a Yuva user buy a second way to pay for the same work, so `lib/e2e-auth.js`
+chooses in this order: a login e2e already holds → a subscription they plausibly
+already have → a local model → an API key, last and really only for CI.
+
+| Yuva CLI | How the agent signs in |
+|---|---|
+| `codex` | `yuva e2e login openai` — the *same* ChatGPT sign-in Codex uses |
+| `claude`, `gemini`, `opencode`, `aider` | `yuva e2e login github-copilot` |
+| any, with the GitHub CLI present | `--from-gh`, reusing the existing `gh` login |
+
+e2e has no Claude subscription support, so a Claude Code user reaches Anthropic
+models through **GitHub Copilot** — which serves OpenAI, Anthropic, Google and
+xAI models over one login. The scaffolded config comes out as
+`copilot('claude-sonnet-5')` with no key anywhere. Verified: with
+`ANTHROPIC_API_KEY` sitting in the environment, init still picks the
+subscription, and a test asserts an API key is never recommended when any
+subscription route exists.
+
+Yuva reads only the provider *names* from `~/.config/e2e/oauth.json`, never a
+credential value — there is a test for that too. `yuva e2e login`, `logout` and
+`models` pass straight through, since they are interactive browser or device-code
+flows that wrapping would only obstruct.
+
+**`yuva e2e init`** scaffolds `e2e.config.ts` and five starter behaviour tests
+drawn from the contracts rather than from imagination (product brief P3/P7, and
+C5/C7/C8), and reuses the `visual` gate's app URL so both gates test the same
+thing.
+
+**`lib/e2e-runner.js`** parses the `report-1` document. The schema is not
+published — the CLI reference says it ships inside the package, so it was read
+from `e2e/schema/report-v1.schema.json` rather than guessed, and a test
+cross-checks the fixtures against that file so this cannot drift into testing an
+imagined shape. `schemaVersion` is checked and a mismatch reported loudly;
+`e2e` is pre-1.0.
+
+Three results that read as green and are not, all surfaced:
+
+- **`e2e-silent-skip`** — 7 of the 9 skip causes in the schema (`setup-failed`,
+  `infrastructure-unavailable`, `hook-failed`, …) mean the test never ran. Only
+  `explicit` and `filtered` are benign. An untested test is not a passing one.
+- **`e2e-flaky`** — passed on a retry. Advisory by default, blocking via
+  `failOnFlaky`.
+- **`e2e-no-tests`** — a suite that runs nothing passes trivially.
+
+Exit codes are mapped from the CLI reference rather than inferred, because the
+difference between "a test failed" (1) and "your model provider is down" (3) is
+the difference between a finding and a wild goose chase. A `maxCostUsd` ceiling
+warns when a run overspends, pointing at `e2e cache stats` — a climbing bill
+usually means something invalidates the cache every run.
+
+**`lib/cost-tracker.js`** now accepts known figures. `recordCall()` estimated
+tokens from character counts, which was all any caller had; `e2e` reports real
+`modelTokens` and `estimatedCostUsd`, so passing those through a character
+estimator would have thrown away the one accurate number in the system. Callers
+without real figures are unaffected.
+
+**New E2E agent** (`yuva agent show e2e`), placed before Visual QA in the chain:
+prove it works, then judge how it looks. Its central rule is to write goals, not
+click paths — `agent.act('upgrade the workspace to Pro')` survives the button
+moving and replays from cache, where a recorded click path breaks and re-bills.
+
+### Fixed
+
+- **The `.bin` shim would have broken the whole integration on Windows,
+  silently.** Since Node 18.20 / 20.12, spawning a `.cmd` without `shell: true`
+  throws `EINVAL` (the CVE-2024-27980 mitigation) — and `execFileSync` reports it
+  with `stdout` and `stderr` both `undefined`, so `yuva e2e list` printed nothing
+  and looked like an empty project. Now resolves the package's own JS entry from
+  its `bin` field and runs it with `process.execPath`: identical on every
+  platform, and no `shell: true`, so no quoting or injection surface. The
+  passthrough also no longer fails silently when both streams are empty.
+- `resolveTemplateFile()` returns file **content**, not a path — I had assumed a
+  path from its name and fed the template text to `fs.readFileSync`. The same
+  "read the API, do not assume it" lesson as the report schema.
+- `tests/docs-references.test.js` parsed `yuva e2e` as `yuva e`, because its
+  command extractor allowed no digits. The guard caught the resulting unresolved
+  command, which is what it is for; the extractor now allows digits.
+
+### Tests
+
+725 → 805 (+50 e2e-runner, including the fixture-vs-schema cross-check and every
+skip cause the schema declares; +28 e2e-auth, including that the provider
+catalogue matches the oauth modules e2e actually exports, and that no credential
+value can leak out of the login store).
+
+### Note on devDependencies
+
+`e2e` is a devDependency here purely so the vendored report schema can be
+cross-checked; it is **not** a runtime dependency, and the integration resolves
+`e2e` from the project being tested, never from Yuva. Runtime `dependencies` are
+still `execa`, `glob`, `picocolors`.
+
 #### Closing the three stated gaps — and what running it found
 
 The previous passes left three gaps recorded honestly in

@@ -95,6 +95,8 @@ function showHelp() {
   log('  analytics         View analytics dashboard\n');
 
   log('Quality Gates:', 'bright');
+  log('  e2e               Run agent-driven behaviour tests (keyboard, focus, states)');
+  log('  e2e init          Scaffold e2e.config.ts and starter behaviour tests');
   log('  gate              Run all quality gates (lint, typecheck, test, build)');
   log('  gate list         Show detected gates without running them\n');
 
@@ -234,6 +236,12 @@ switch (command) {
     sessionCommand.run(subArgs, flags);
     break;
   }
+  case 'e2e': {
+    const e2eCommand = require('../lib/commands/e2e');
+    e2eCommand(rawSubArgs());
+    break;
+  }
+
   case 'gate': {
     const gateCommand = require('../lib/commands/gate');
     gateCommand(rawSubArgs());

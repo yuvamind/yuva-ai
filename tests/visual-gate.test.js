@@ -126,8 +126,12 @@ describe('detectStartCommand()', () => {
 });
 
 describe('gate-runner integration', () => {
-  it('lists visual last, after the text-only gates', () => {
-    expect(GATE_ORDER).toEqual(['lint', 'typecheck', 'test', 'build', 'visual']);
+  it('orders the slow, browser-driven gates after the text-only ones', () => {
+    expect(GATE_ORDER).toEqual(['lint', 'typecheck', 'test', 'build', 'visual', 'e2e']);
+    // Cheap text checks first: there is no point rendering a page or driving a
+    // browser for an app that does not compile.
+    expect(GATE_ORDER.indexOf('visual')).toBeGreaterThan(GATE_ORDER.indexOf('build'));
+    expect(GATE_ORDER.indexOf('e2e')).toBeGreaterThan(GATE_ORDER.indexOf('visual'));
   });
 
   it('does NOT add a visual gate to a project that has not opted in', () => {
