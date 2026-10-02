@@ -36,6 +36,11 @@ the `node16` resolver rejects outright. That `require()` already needs
 Node 22+ at runtime despite `engines` saying 18; the migration did not change
 it, only documented it.
 
+The `postinstall` hook now runs the welcome script only when `dist/` exists.
+In a published install it always does; in a source checkout `dist/` is a
+build output that is absent at `npm ci` time, and the first cut of this
+change made every fresh clone (and CI) fail at install.
+
 ESLint reads TypeScript through `@typescript-eslint/parser`. The rule set is
 the pre-migration one; adopting the typescript-eslint "recommended" rules is a
 separate decision and was deliberately not bundled into this change.

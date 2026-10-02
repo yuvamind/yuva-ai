@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "doctor": "node dist/bin/cli.js doctor",
-    "postinstall": "node dist/bin/postinstall.js",
+    "postinstall": "node -e \"const f='./dist/bin/postinstall.js';if(require('fs').existsSync(f))require(f)\"",
     "prepublishOnly": "npm run build && npm run lint && npm test",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
