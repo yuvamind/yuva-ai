@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-10-02
+
+### Changed
+
+#### The package is now TypeScript
+
+Every source and test file is TypeScript under `strict`, compiled to `dist/`
+(`npm run build`). The published surface moved with it: `main` is
+`dist/index.js`, the `yuva` / `yuva-ai` binaries are `dist/bin/cli.js`, and
+`dist/index.d.ts` ships type declarations for the programmatic API. Nothing
+changes for consumers — the emitted code is still CommonJS, so
+`require('yuva-ai')` keeps working and the CLI starts the same way.
+
+Three latent bugs surfaced and were fixed by the move. `lib/resolve-package`,
+`lib/fs-utils` and `bin/cli` located the package root with a fixed
+`path.join(__dirname, '..')`, which is correct only while the source layout is
+the runtime layout; under `dist/` it resolved to a directory with no
+`template/` and silently fell through to whatever GLOBAL yuva-ai install was
+present. `lib/pkg-root.ts` now walks up to the package's own `package.json`,
+so template and version resolution are layout-independent.
+
+Build and check scripts: `npm run build`, `npm run typecheck` (strict, tests
+included) and `npm test`, which builds first because the CLI tests spawn the
+compiled binary. `tsconfig.json` keeps `moduleResolution: Node10` on purpose:
+`execa@7` and `glob@13` are pure ESM and this code `require()`s them, which
+the `node16` resolver rejects outright. That `require()` already needs
+Node 22+ at runtime despite `engines` saying 18; the migration did not change
+it, only documented it.
+
+ESLint reads TypeScript through `@typescript-eslint/parser`. The rule set is
+the pre-migration one; adopting the typescript-eslint "recommended" rules is a
+separate decision and was deliberately not bundled into this change.
+
 ### Added
 
 #### Design capability — the gap between Yuva and Lovable/Bolt/v0
@@ -833,4 +866,5 @@ cannot drift, refuses to republish an existing version, fails if the agent
 templates are missing from the tarball, and `prepublishOnly` re-runs lint and
 tests even on a manual `npm publish`.
 
+[2.5.0]: https://github.com/yuvamind/yuva-ai/releases/tag/v2.5.0
 [2.4.0]: https://github.com/yuvamind/yuva-ai/releases/tag/v2.4.0

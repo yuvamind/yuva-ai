@@ -1,0 +1,163 @@
+import path from 'path';
+import fs from 'fs';
+import { execFileSync } from 'child_process';
+import { log, box, success, warn, info, error } from '../colors';
+import { fileExists, readJSON, writeJSON } from '../fs-utils';
+import { resolvePackagePath } from '../resolve-package';
+import { getLLMConfig } from '../llm-adapters';
+import { generateNativeConfig, generateAllNativeConfigs, updateGitignore } from '../native-configs';
+import * as P from '../paths';
+import upgradeCommand from './upgrade';
+
+interface UpdateOptions {
+  dryRun?: boolean;
+  skipNpm?: boolean;
+}
+
+function updateCommand(options: UpdateOptions = {}) {
+  const targetDir = process.cwd();
+  const dryRun = options.dryRun || false;
+  const skipNpm = options.skipNpm || false;
+
+  box('Yuva AI - Update');
+
+  // Check if initialized. Older versions used CLAUDE.md as the master file
+  // (before the AGENTS.md migration), and some projects only carry a config
+  // directory (.yuva/, or a pre-2.2 .aiautomations/) — all are valid installs.
+  const hasAgentsMd = fileExists(path.join(targetDir, 'AGENTS.md'));
+  const hasLegacyClaudeMd = fileExists(path.join(targetDir, 'CLAUDE.md'));
+  const hasConfigDir = P.isInitialized(targetDir);
+
+  if (!hasAgentsMd && !hasLegacyClaudeMd && !hasConfigDir) {
+    warn('Not initialized. Run "yuva init" first.\n');
+    return;
+  }
+
+  // Legacy install (pre-AGENTS.md) — run the upgrade migration first
+  if (!hasAgentsMd && hasLegacyClaudeMd) {
+    info('Legacy installation detected (CLAUDE.md) — migrating to latest format first...\n');
+    upgradeCommand({ dryRun });
+    log('');
+    if (dryRun) return;
+  }
+
+  // Read current config
+  const configPath = P.configFile(targetDir);
+  const config = readJSON(configPath);
+  const currentTool = config ? config.tool : null;
+  const currentVersion = config ? config.version : 'unknown';
+
+  info(`Current version: ${currentVersion}`);
+
+  // Step 1: Update npm package
+  if (!skipNpm) {
+    info('Checking for updates...');
+
+    if (dryRun) {
+      info('DRY RUN - Would run npm update for yuva-ai');
+    } else {
+      try {
+        // Check if installed globally or locally
+        const isGlobal = isGlobalInstall();
+        const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+        const updateArgs = isGlobal
+          ? ['update', '-g', 'yuva-ai']
+          : ['update', 'yuva-ai'];
+
+        info(`Updating yuva-ai (${isGlobal ? 'global' : 'local'})...`);
+        execFileSync(npmCommand, updateArgs, { stdio: 'pipe', encoding: 'utf8' });
+        success('Package updated');
+      } catch (err) {
+        warn(`npm update failed: ${(err as Error).message}`);
+        warn('Continuing with config regeneration...\n');
+      }
+    }
+  }
+
+  // Resolve package path (may have changed after update)
+  const pkgPath = resolvePackagePath();
+  if (!pkgPath) {
+    error('Cannot find yuva-ai package. Try reinstalling.');
+    return;
+  }
+
+  const pkg = require(path.join(pkgPath, 'package.json'));
+  const newVersion = pkg.version;
+
+  if (skipNpm) {
+    info(`Package version: ${newVersion}`);
+  } else {
+    if (newVersion !== currentVersion) {
+      success(`Updated to: ${newVersion}`);
+    } else {
+      info(`Already on latest: ${newVersion}`);
+    }
+  }
+
+  if (dryRun) {
+    info('\nDRY RUN - Would update:');
+    log('   AGENTS.md');
+    log('   .yuva/config.json');
+    if (currentTool === 'all') {
+      log('   Native configs for ALL tools');
+    } else if (currentTool) {
+      log(`   Native configs for: ${currentTool}`);
+    }
+    log('   .gitignore');
+    return;
+  }
+
+  log('');
+
+  // Step 2: Update AGENTS.md from template
+  const templatePath = path.join(pkgPath, 'template');
+  const templateAgentsMd = path.join(templatePath, 'AGENTS.md');
+  if (fileExists(templateAgentsMd)) {
+    fs.copyFileSync(templateAgentsMd, path.join(targetDir, 'AGENTS.md'));
+    success('Updated AGENTS.md');
+  }
+
+  // Step 3: Regenerate native configs
+  if (currentTool) {
+    const llmConfig = getLLMConfig(currentTool);
+    const toolName = llmConfig ? llmConfig.name : (currentTool === 'all' ? 'All Tools' : currentTool);
+
+    info(`Regenerating native configs for: ${toolName}`);
+
+    if (currentTool === 'all') {
+      const result = generateAllNativeConfigs(targetDir);
+      success(`Regenerated ${result.totalFiles} native config files`);
+    } else {
+      const files = generateNativeConfig(currentTool, targetDir);
+      if (files.length > 0) {
+        success(`Regenerated ${files.length} native config files`);
+      } else {
+        info(`No native configs needed for ${toolName} (uses AGENTS.md directly)`);
+      }
+    }
+  }
+
+  // Step 4: Update gitignore
+  updateGitignore(targetDir);
+
+  // Step 5: Update config.json version
+  if (config) {
+    config.version = newVersion;
+    writeJSON(configPath, config);
+  }
+
+  success('\nUpdate complete!\n');
+}
+
+function isGlobalInstall() {
+  try {
+    const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    const globalPath = execFileSync(npmCommand, ['root', '-g'], { encoding: 'utf8' }).trim();
+    const pkgPath = resolvePackagePath();
+    return pkgPath && pkgPath.startsWith(globalPath);
+  } catch {
+    return false;
+  }
+}
+
+export = updateCommand;

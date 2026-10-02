@@ -1,0 +1,80 @@
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
+import { buildWorkPackage, ROLES } from '../lib/work-package';
+import { TaskBus } from '../lib/task-bus';
+
+describe('work-package', () => {
+  let tmpDir: string;
+  let bus: TaskBus;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yuva-wp-'));
+    bus = new TaskBus(tmpDir);
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('defines the core roles', () => {
+    expect(Object.keys(ROLES)).toEqual(
+      expect.arrayContaining(['executor', 'tester', 'reviewer', 'security', 'debugger'])
+    );
+  });
+
+  it('includes task details, agent prompt, checklists, and completion protocol', () => {
+    const task = bus.addTask({
+      title: 'Build login',
+      role: 'executor',
+      description: 'JWT-based auth',
+    });
+
+    const pkg = buildWorkPackage(task, tmpDir);
+    // The banner is role-scoped so it can head the cacheable prefix; the task
+    // id now appears in the per-task section at the end.
+    expect(pkg).toContain(`Yuva Work Package - ${task.role} worker`);
+    expect(pkg).toContain(`YOUR TASK - ${task.id}`);
+    expect(pkg).toContain('Build login');
+    expect(pkg).toContain('JWT-based auth');
+    // Agent prompt comes from the package template dir
+    expect(pkg).toContain('Your Agent Instructions (executor)');
+    expect(pkg).toContain('Completion Protocol (MANDATORY)');
+    expect(pkg).toContain(`yuva task done ${task.id}`);
+    expect(pkg).toContain(`yuva task fail ${task.id}`);
+  });
+
+  it('includes rejection feedback so the next attempt must address it', () => {
+    const task = bus.addTask({ title: 'T1', role: 'tester' });
+    const worker = bus.registerWorker({ role: 'tester' });
+    bus.claimTask(worker.id, 'tester');
+    bus.completeTask(task.id, { workerId: worker.id });
+    bus.rejectTask(task.id, 'tests do not cover the error path');
+
+    const pkg = buildWorkPackage(bus.getTask(task.id)!, tmpDir);
+    expect(pkg).toContain('Feedback from previous attempt');
+    expect(pkg).toContain('tests do not cover the error path');
+  });
+
+  it('prefers local .aiautomations prompt overrides', () => {
+    const promptsDir = path.join(tmpDir, '.yuva', 'prompts');
+    fs.mkdirSync(promptsDir, { recursive: true });
+    fs.writeFileSync(path.join(promptsDir, 'execution.md'), 'LOCAL OVERRIDE PROMPT');
+
+    const task = bus.addTask({ title: 'T1', role: 'executor' });
+    const pkg = buildWorkPackage(task, tmpDir);
+    expect(pkg).toContain('LOCAL OVERRIDE PROMPT');
+  });
+
+  it('lists detected quality gates in the completion protocol', () => {
+    fs.mkdirSync(path.join(tmpDir, '.yuva'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, '.yuva', 'config.json'),
+      JSON.stringify({ gates: { lint: 'my-lint-cmd' } })
+    );
+
+    const task = bus.addTask({ title: 'T1', role: 'executor' });
+    const pkg = buildWorkPackage(task, tmpDir);
+    expect(pkg).toContain('my-lint-cmd');
+  });
+});

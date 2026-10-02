@@ -2,10 +2,10 @@
   "name": "yuva-ai",
   "version": "2.4.0",
   "description": "Yuva AI - Neural-graph development agent framework with enforcement, multi-agent swarm, headless automation for 5 AI CLIs (Claude, Gemini, Codex, OpenCode, Aider), and config generation for 20 LLM platforms",
-  "main": "index.js",
+  "main": "dist/index.js",
   "bin": {
-    "yuva-ai": "bin/cli.js",
-    "yuva": "bin/cli.js"
+    "yuva-ai": "dist/bin/cli.js",
+    "yuva": "dist/bin/cli.js"
   },
   "scripts": {
     "test": "vitest run",
@@ -13,9 +13,12 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "doctor": "node bin/cli.js doctor",
-    "postinstall": "node bin/postinstall.js",
-    "prepublishOnly": "npm run lint && npm test"
+    "doctor": "node dist/bin/cli.js doctor",
+    "postinstall": "node dist/bin/postinstall.js",
+    "prepublishOnly": "npm run build && npm run lint && npm test",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "pretest": "npm run build"
   },
   "keywords": [
     "yuva",
@@ -65,10 +68,8 @@
     "url": "https://github.com/yuvamind/yuva-ai/issues"
   },
   "files": [
-    "bin/",
-    "lib/",
+    "dist/",
     "template/",
-    "index.js",
     "CHANGELOG.md",
     "README.md",
     "LICENSE"
@@ -77,16 +78,20 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
+    "@types/node": "^26.6.4",
     "@vitest/coverage-v8": "^3.2.4",
     "axe-core": "^4.13.0",
     "e2e": "^0.15.1",
     "eslint": "^9.39.4",
     "playwright": "^1.63.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.0",
     "vitest": "^3.2.4"
   },
   "dependencies": {
     "execa": "^7.2.0",
     "glob": "^13.0.6",
     "picocolors": "^1.1.1"
-  }
+  },
+  "types": "dist/index.d.ts"
 }

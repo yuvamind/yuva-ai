@@ -1,0 +1,72 @@
+{
+  "compilerOptions": {
+    /* Node 18 is the engines floor, so ES2022 is the highest safe target. */
+    "target": "ES2022",
+    /* DOM is included for the browser-side collectors only.
+     * design-audit, axe-runner, e2e-runner and visual-fixtures define functions
+     * that are serialised and executed inside a real page via page.evaluate(),
+     * so they legitimately reference document/window/getComputedStyle. The cost
+     * is that DOM globals also typecheck inside Node-only modules, where they
+     * would fail at runtime -- grep before assuming a `document` reference in
+     * lib/ is browser code. */
+    "lib": ["ES2022", "DOM"],
+
+    /* CommonJS OUTPUT, ES-module SYNTAX.
+     *
+     * The source is written with import/export, but tsc emits require()/exports.
+     * This is deliberate and load-bearing:
+     *   - __dirname stays available (used across lib/ for path resolution),
+     *   - consumers keep working with `require('yuva-ai')`, which the published
+     *     API in index.ts promises and which real ESM output would break,
+     *   - vitest and the bin shim need no loader or extension gymnastics.
+     * Switching "module" to an ESM value is a breaking change for consumers,
+     * not a formatting preference. */
+    "module": "CommonJS",
+
+    /* Node10 resolution, deliberately, despite the TS6 deprecation.
+     * execa@7 and glob@13 are both pure ESM ("type":"module", no CJS entry) and
+     * this codebase require()s them. Under "node16" resolution TypeScript hard-
+     * errors TS1479 on every such import, which would force an ESM conversion as
+     * a side effect of adding types. Node10 emits the identical require() calls
+     * that ship today, keeping the migration behaviour-neutral.
+     * Revisit when execa/glob are dropped, pinned to CJS versions, or the whole
+     * package moves to ESM -- this must change before TypeScript 7. */
+    "moduleResolution": "Node10",
+    "ignoreDeprecations": "6.0",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Strict, per the migration decision. Every flag below is implied by
+     * "strict" but is listed so that turning one off is a visible choice. */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    "alwaysStrict": true,
+
+    /* Not part of "strict" — these catch real bugs in this codebase's style. */
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* allowJs lets .ts and .js coexist while the migration is in flight, so the
+     * build stays green after every batch instead of only at the very end.
+     * checkJs stays OFF: un-migrated .js has no annotations yet. */
+    "allowJs": true,
+    "checkJs": false,
+
+    /* Explicit, and required: this toolchain does NOT auto-include every
+     * node_modules/@types package. Without naming "node" here, every `fs`,
+     * `path` and `__dirname` reference fails with TS2591. */
+    "types": ["node", "vitest/globals"],
+
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["index.ts", "bin/**/*.ts", "lib/**/*.ts", "tests/**/*.ts"],
+  "exclude": ["node_modules", "dist", "template", "docs", "test-demo"]
+}
