@@ -5,6 +5,7 @@ import { NeuralGraph } from '../neural-graph';
 import { detectGates } from '../gate-runner';
 import { CostTracker } from '../cost-tracker';
 import * as P from '../paths';
+import { resolvePackagePath } from '../resolve-package';
 
 function statusCommand() {
   const targetDir = process.cwd();
@@ -18,32 +19,40 @@ function statusCommand() {
 
   success('Project is initialized\n');
 
-  // Count agents
-  const promptsDir = P.promptsDir(targetDir);
-  const agents = fileExists(promptsDir) ? listFiles(promptsDir, '*.md') : [];
-  const devAgents = ['requirementsagent.md', 'riskassessmentagent.md', 'planningprompt.md',
-    'execution.md', 'continuityagent.md', 'testeragent.md', 'revieweragent.md',
-    'securityagent.md', 'debuggeragent.md', 'refactoragent.md', 'statemanageragent.md'];
+  // Agents, templates and standards are SERVED FROM THE PACKAGE; the project's
+  // own .yuva/prompts/ holds overrides only and is empty on a healthy install.
+  // Counting just the local directory reported "Total: 0 agents" on a project
+  // that `yuva agent list` and `yuva doctor` both described as having 16.
+  const pkgRoot = resolvePackagePath();
+  const pkgTemplate = pkgRoot ? path.join(pkgRoot, 'template') : null;
+  const countIn = (dir: string | null, pattern = '*.md') =>
+    (dir && fileExists(dir) ? listFiles(dir, pattern) : []);
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-  const devCount = agents.filter(a => devAgents.includes(a)).length;
-  const lifeCount = agents.length - devCount - (agents.includes('orchestrator.md') ? 1 : 0);
+  const available = countIn(pkgTemplate ? P.promptsDir(pkgTemplate) : null);
+  const overrides = countIn(P.promptsDir(targetDir));
 
   log('📊 Agents:', 'bright');
-  log(`   Total: ${agents.length} agents`);
-  log(`   Development: ${devCount}`);
-  log(`   Life/Personal: ${lifeCount}\n`);
+  if (available.length === 0 && !pkgRoot) {
+    warn('   Package not found — run "yuva doctor"');
+  } else {
+    log(`   Available: ${available.length} (served from the package)`);
+    log(`   Local overrides: ${overrides.length}${overrides.length ? ` — ${overrides.join(', ')}` : ''}`);
+  }
+  log('');
 
 
 
-  // Check templates
-  const templatesDir = P.templatesDir(targetDir);
-  const templates = fileExists(templatesDir) ? listFiles(templatesDir, '*.md') : [];
-  log(`📄 Templates: ${templates.length} files`, 'bright');
+  // Templates and standards, same rule: package first, local override second.
+  const templates = countIn(pkgTemplate ? P.templatesDir(pkgTemplate) : null, '*')
+    .concat(countIn(P.templatesDir(targetDir), '*'));
+  log(`📄 Templates: ${plural(templates.length, 'file')}`, 'bright');
 
-  // Check protocols
-  const protocolsDir = P.protocolsDir(targetDir);
-  const protocols = fileExists(protocolsDir) ? listFiles(protocolsDir, '*.md') : [];
-  log(`🔒 Protocols: ${protocols.length} files`, 'bright');
+  // Standards replaced the old "protocols" directory, which no longer ships —
+  // so that line reported 0 forever regardless of the project's real state.
+  const standards = countIn(pkgTemplate ? P.standardsDir(pkgTemplate) : null)
+    .concat(countIn(P.standardsDir(targetDir)));
+  log(`📐 Standards: ${plural(standards.length, 'file')}`, 'bright');
 
   // Session state
   log('\n📁 Session:', 'bright');

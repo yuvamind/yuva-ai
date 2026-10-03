@@ -345,6 +345,7 @@ async function swarmSpawn(bus: TaskBus, flags: Flags, targetDir: string) {
   for (const role of roles) {
     if (!(ROLES as Record<string, unknown>)[role]) {
       error(`Unknown role: ${role}. Valid roles: ${Object.keys(ROLES).join(', ')}`);
+      process.exitCode = 1;
       return;
     }
   }

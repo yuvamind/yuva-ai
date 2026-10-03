@@ -90,6 +90,7 @@ function tokensProfile(bus: TaskBus, flags: Flags, targetDir: string) {
   for (const role of roles) {
     if (!ROLES[role]) {
       error(`Unknown role: ${role}. Valid roles: ${Object.keys(ROLES).join(', ')}`);
+      process.exitCode = 1;
       continue;
     }
     const pkg = buildWorkPackage(sampleTask(bus, role), targetDir);

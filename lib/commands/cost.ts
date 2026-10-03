@@ -52,6 +52,7 @@ function setBudget(busDir: string, amount?: string) {
   const limit = parseFloat(amount);
   if (isNaN(limit) || limit <= 0) {
     log('Budget must be a positive number (in USD)', 'red');
+    process.exitCode = 1;
     return;
   }
   const tracker = new CostTracker(busDir);

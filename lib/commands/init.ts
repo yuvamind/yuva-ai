@@ -55,6 +55,17 @@ async function initCommand(options: InitOptions = {}) {
 
     info(`Detected: ${detectedName}`);
 
+    // Without a terminal there is nobody to answer the prompt: readline sees
+    // EOF immediately and this used to exit 0 having written nothing at all.
+    // Say what to run instead of failing silently.
+    if (!process.stdin.isTTY && options.testInput === undefined) {
+      error('`yuva init` needs a terminal to confirm the detected tool.');
+      info(`Non-interactive? Name the tool instead:  yuva init ${detected}`);
+      info('Or generate configs for every supported tool:  yuva init --all');
+      process.exitCode = 1;
+      return;
+    }
+
     const useDetected = await confirm(`Use ${detectedName}?`, options);
     if (useDetected) {
       selectedTool = detected;

@@ -82,7 +82,10 @@ function doctorCommand() {
   if (fileExists(P.sessionDir(targetDir)) || fileExists(path.join(targetDir, '.session'))) {
     success('session directory exists (.yuva/run/session/)');
   } else {
-    warn('session directory not found (created on first use)');
+    // Informational, not a warning: every brand-new project is in this state.
+    // Printing a warning glyph here contradicted the "All checks passed!" banner
+    // that the same run concluded with.
+    info('session directory not created yet (made on first `yuva session start`)');
   }
 
   // Check Node.js version

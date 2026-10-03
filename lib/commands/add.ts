@@ -123,6 +123,7 @@ function removeAgent(args: string[], targetDir: string) {
   const name = args[0];
   if (!name) {
     error('Agent name required. Usage: yuva add remove <name>');
+    process.exitCode = 1;
     return;
   }
 

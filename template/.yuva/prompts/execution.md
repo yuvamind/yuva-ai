@@ -30,7 +30,7 @@ STEP 1 — READ CONTEXT
 1) Read and understand:
    - Your work package (task description, feedback, context above)
    - The project structure (listed in the context section above)
-   - Any existing session state in .yuva/session/ (if exists)
+   - Any existing session state in .yuva/run/session/ (if exists)
 
 ========================================
 STEP 2 — EXECUTION MODE

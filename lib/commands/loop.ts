@@ -40,7 +40,7 @@ function showLoopHelp() {
   log('  3. VERIFY   Quality gates run on every completion; failures bounce back');
   log('  4. ESCALATE Tasks failing repeatedly become debugger tasks');
   log('  5. REVIEW   AI checks the repo: goal achieved? If not → new tasks, repeat');
-  log('  6. REPORT   Final summary written to .yuva/report.md\n');
+  log('  6. REPORT   Final summary written to .yuva/run/report.md\n');
 }
 
 // The CLI the project is configured for (null when unset/unknown).

@@ -88,6 +88,7 @@ function showAgentHelp() {
 function showAgent(name: string) {
   if (!name) {
     error('Agent name required. Run "yuva agent list" to see options.');
+    process.exitCode = 1;
     return;
   }
 
@@ -120,6 +121,7 @@ function showAgent(name: string) {
   const fileName = (AGENT_MAP as Record<string, string | undefined>)[name];
   if (!fileName) {
     error(`Unknown agent: ${name}. Run "yuva agent list" to see options.`);
+    process.exitCode = 1;
     return;
   }
 

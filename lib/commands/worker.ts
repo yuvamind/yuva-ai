@@ -64,6 +64,7 @@ function showWorkerHelp() {
 function validateRole(role: FlagValue | null | undefined): role is string | null | undefined {
   if (role && !(ROLES as Record<string, unknown>)[String(role)]) {
     error(`Unknown role: ${role}. Valid roles: ${Object.keys(ROLES).join(', ')}`);
+    process.exitCode = 1;
     return false;
   }
   return true;

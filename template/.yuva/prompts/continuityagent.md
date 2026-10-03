@@ -12,10 +12,10 @@ STEP 1 — READ CURRENT STATE
    - Files changed
 
 2) Read session files if they exist:
-   - .yuva/session/session.json
-   - .yuva/session/state.md
-   - .yuva/session/log.md
-   - .yuva/session/context.md
+   - .yuva/run/session/session.json
+   - .yuva/run/session/state.md
+   - .yuva/run/session/log.md
+   - .yuva/run/session/context.md
 
 ========================================
 STEP 2 — ASSESS WHERE WE LEFT OFF

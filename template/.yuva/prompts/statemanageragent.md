@@ -8,7 +8,7 @@ Your job is to UPDATE session and project state files to maintain continuity.
 STEP 1 — READ CURRENT STATE
 ========================================
 1) Check the project context above
-2) Read current session files in .yuva/session/
+2) Read current session files in .yuva/run/session/
 3) Understand what work has been done
 
 ========================================

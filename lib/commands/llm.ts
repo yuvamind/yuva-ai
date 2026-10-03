@@ -79,6 +79,7 @@ function useLLM(llmId: string) {
   const configData = getLLMConfig(llmId);
   if (!configData) {
     error(`Unknown LLM: ${llmId}. Use "yuva llm list" to see options.`);
+    process.exitCode = 1;
     return;
   }
 
@@ -150,6 +151,7 @@ function generateConfigs(specific: string) {
 
   if (toGenerate.length === 0) {
     error(specific ? `Unknown LLM: ${specific}` : 'No LLMs to generate configs for.');
+    process.exitCode = 1;
     return;
   }
 
@@ -177,6 +179,7 @@ function showModels(llmId: string) {
   const config = getLLMConfig(llmId);
   if (!config) {
     error(`Unknown LLM: ${llmId}`);
+    process.exitCode = 1;
     return;
   }
 

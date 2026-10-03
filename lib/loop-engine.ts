@@ -265,7 +265,7 @@ function verifyDoneTasks(bus: TaskBus, targetDir: string): VerificationMessage[]
  * The autonomous loop: plan → execute → verify → escalate → review → replan,
  * until the goal is achieved, the AI has nothing left to propose, or the
  * iteration budget runs out. State lives in .yuva/loop.json (crash-resumable),
- * the final report in .yuva/report.md.
+ * the final report in .yuva/run/report.md.
  */
 /** A task as the planner/reviewer proposes it, before it has a bus id. */
 export interface PlannedTask {
@@ -549,7 +549,7 @@ class LoopEngine {
     }
   }
 
-  /** Write .yuva/report.md and mark the loop state terminal. */
+  /** Write .yuva/run/report.md and mark the loop state terminal. */
   writeReport(goal: string, result: LoopResult): string {
     const tasks = this.bus.listTasks();
     const lines = [

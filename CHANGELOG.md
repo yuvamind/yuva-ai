@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+#### Terminal output said things that were not true
+
+Driving the compiled CLI end to end through a real project surfaced several
+places where the information on screen contradicted reality.
+
+- **`yuva status` reported `Total: 0 agents`** on a healthy project, while
+  `yuva doctor` and `yuva agent list` both reported 16. It counted only the
+  project's `.yuva/prompts/`, which holds *overrides* and is empty by design
+  since prompts began being served from the package. It now reports what is
+  available and how many local overrides exist. `Templates` counted `*.md`
+  only and said `1 files` where five ship; `Protocols` counted a directory
+  that no longer exists and so read `0` forever -- it is now `Standards`.
+
+- **Shipped agent prompts pointed at `.yuva/session/`**, which has been
+  `.yuva/run/session/` since 2.2. Every agent reading continuity state was
+  being sent to a path that does not exist. Same for `.yuva/report.md` in the
+  loop help, which is written to `.yuva/run/report.md`.
+
+- **`yuva init` exited 0 having done nothing** when stdin was not a terminal:
+  the confirmation prompt read EOF and fell through silently. It now says so
+  and names the two non-interactive forms (`yuva init <tool>`, `--all`).
+
+- **Error paths exited 0.** An unknown role, an unknown LLM, a missing task
+  title, a bad budget and an unknown agent all printed a red error and then
+  reported success to the shell, so no script or CI step could detect them.
+  They exit 1; success paths still exit 0.
+
+- **`yuva task add` created the task bus silently** while `yuva worker next`
+  refused to run without one and told you to `yuva swarm init` -- the two
+  commands appeared to disagree about whether a bus existed. Creating it is
+  now announced.
+
+- **`yuva doctor` printed a warning for a brand-new session directory** and
+  then concluded `All checks passed!` in the same run. It is informational.
+
+
 ## [2.5.0] - 2026-10-02
 
 ### Changed

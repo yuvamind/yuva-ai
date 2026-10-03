@@ -34,14 +34,20 @@ function taskCommand(args: string[] = []) {
       const title = positional.slice(1).join(' ');
       if (!title) {
         error('Task title required. Usage: yuva task add "title" --role executor');
+        process.exitCode = 1;
         return;
       }
       const role = flags.role || 'any';
       if (role !== 'any' && !(ROLES as Record<string, unknown>)[String(role)]) {
         error(`Unknown role: ${role}. Valid roles: ${Object.keys(ROLES).join(', ')}, any`);
+        process.exitCode = 1;
         return;
       }
       const deps = flags.deps ? String(flags.deps).split(',').map(d => d.trim()).filter(Boolean) : [];
+      // addTask() creates the bus on demand. Say so when it does: `yuva worker
+      // next` refuses to run without a bus and tells you to `yuva swarm init`,
+      // so a silent creation here made the two commands look inconsistent.
+      const busWasMissing = !bus.exists();
       let task;
       try {
         task = bus.addTask({
@@ -59,6 +65,7 @@ function taskCommand(args: string[] = []) {
         process.exitCode = 1;
         return;
       }
+      if (busWasMissing) info('Swarm bus created at .yuva/run/ (first task on this project).');
       success(`Task added: [${task.id}] ${task.title} (role: ${task.role})`);
       if (deps.length) info(`Depends on: ${deps.join(', ')}`);
       break;
