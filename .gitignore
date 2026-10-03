@@ -41,3 +41,5 @@ temp/
 # Yuva AI - local generated configs (from running yuva init on this repo)
 /.aiautomations/
 /CLAUDE.md
+# Yuva AI runtime state (task bus, sessions, caches)
+.yuva/run/
